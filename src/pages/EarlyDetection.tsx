@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Brain, Eye, Activity, FileText, Upload, Clock } from "lucide-react";
@@ -6,7 +7,7 @@ import { Button, Badge, Card, CardContent, CardDescription, CardFooter, CardHead
 import { VoiceAssistant } from "@/components/VoiceAssistant";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { UserRole } from "@/types";
+import { UserRole, VoiceCommand } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/use-toast";
 
@@ -24,7 +25,7 @@ export default function EarlyDetection() {
     return null;
   }
   
-  const voiceCommands = [
+  const voiceCommands: VoiceCommand[] = [
     {
       command: "go back to dashboard",
       action: () => navigate("/dashboard"),
