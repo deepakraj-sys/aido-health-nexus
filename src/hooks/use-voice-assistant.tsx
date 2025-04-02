@@ -32,6 +32,45 @@ export function useVoiceAssistant({
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
+  // Move speak function up before it's referenced
+  const speak = useCallback((text: string, rate = 1, pitch = 1) => {
+    if (!synthRef.current || !utteranceRef.current) {
+      if (!('speechSynthesis' in window)) {
+        toast({
+          title: "Voice Synthesis Unavailable",
+          description: "Your browser doesn't support speech synthesis.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      synthRef.current = window.speechSynthesis;
+      utteranceRef.current = new SpeechSynthesisUtterance();
+    }
+    
+    synthRef.current.cancel();
+    
+    utteranceRef.current.text = text;
+    utteranceRef.current.rate = rate;
+    utteranceRef.current.pitch = pitch;
+    
+    if (synthRef.current.getVoices().length > 0) {
+      const voices = synthRef.current.getVoices();
+      const preferredVoice = voices.find(
+        (voice) => voice.name.includes('Google') && voice.lang.includes('en')
+      ) || voices.find(
+        (voice) => voice.lang.includes('en')
+      );
+      
+      if (preferredVoice) {
+        utteranceRef.current.voice = preferredVoice;
+      }
+    }
+    
+    synthRef.current.speak(utteranceRef.current);
+    setIsSpeaking(true);
+  }, []);
+
   const initializeRecognition = useCallback(() => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       toast({
@@ -233,44 +272,6 @@ export function useVoiceAssistant({
       start();
     }
   }, [isListening, start, stop]);
-  
-  const speak = useCallback((text: string, rate = 1, pitch = 1) => {
-    if (!synthRef.current || !utteranceRef.current) {
-      if (!('speechSynthesis' in window)) {
-        toast({
-          title: "Voice Synthesis Unavailable",
-          description: "Your browser doesn't support speech synthesis.",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      synthRef.current = window.speechSynthesis;
-      utteranceRef.current = new SpeechSynthesisUtterance();
-    }
-    
-    synthRef.current.cancel();
-    
-    utteranceRef.current.text = text;
-    utteranceRef.current.rate = rate;
-    utteranceRef.current.pitch = pitch;
-    
-    if (synthRef.current.getVoices().length > 0) {
-      const voices = synthRef.current.getVoices();
-      const preferredVoice = voices.find(
-        (voice) => voice.name.includes('Google') && voice.lang.includes('en')
-      ) || voices.find(
-        (voice) => voice.lang.includes('en')
-      );
-      
-      if (preferredVoice) {
-        utteranceRef.current.voice = preferredVoice;
-      }
-    }
-    
-    synthRef.current.speak(utteranceRef.current);
-    setIsSpeaking(true);
-  }, []);
   
   useEffect(() => {
     return () => {
