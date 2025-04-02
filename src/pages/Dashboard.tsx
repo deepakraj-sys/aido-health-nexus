@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -218,13 +217,13 @@ export default function Dashboard() {
       command: "go to profile",
       action: () => navigate("/profile"),
       description: "navigating to your profile",
-      category: "navigation",
+      category: "navigation" as const,
     },
     {
       command: "go to settings",
       action: () => navigate("/settings"),
       description: "navigating to settings",
-      category: "navigation",
+      category: "navigation" as const,
     },
     {
       command: "log out",
@@ -234,7 +233,7 @@ export default function Dashboard() {
         navigate("/");
       },
       description: "logging you out",
-      category: "authentication",
+      category: "authentication" as const,
     },
   ];
   

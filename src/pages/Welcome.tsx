@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -44,7 +43,6 @@ export default function Welcome() {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   
-  // Auto-rotate featured items
   useEffect(() => {
     const interval = setInterval(() => {
       setActiveFeatureIndex((prev) => (prev + 1) % features.length);
@@ -53,14 +51,12 @@ export default function Welcome() {
     return () => clearInterval(interval);
   }, []);
   
-  // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
       navigate("/dashboard");
     }
   }, [isAuthenticated, navigate]);
   
-  // Features showcase
   const features = [
     {
       title: "Voice Assistant",
@@ -79,7 +75,6 @@ export default function Welcome() {
     },
   ];
   
-  // Voice commands
   const voiceCommands = [
     {
       command: "help",
@@ -87,7 +82,7 @@ export default function Welcome() {
         console.log("Help command triggered");
       },
       description: "showing help options",
-      category: "help",
+      category: "help" as const,
     },
     {
       command: "login",
@@ -95,7 +90,7 @@ export default function Welcome() {
         navigate("/login");
       },
       description: "navigating to login page",
-      category: "authentication",
+      category: "authentication" as const,
     },
     {
       command: "register",
@@ -103,7 +98,7 @@ export default function Welcome() {
         navigate("/register");
       },
       description: "navigating to registration page",
-      category: "authentication",
+      category: "authentication" as const,
     },
     {
       command: "tell me about AidoHealth",
@@ -111,7 +106,7 @@ export default function Welcome() {
         console.log("About AidoHealth command triggered");
       },
       description: "telling you about AidoHealth",
-      category: "general",
+      category: "general" as const,
     },
     {
       command: "what can you do",
@@ -119,13 +114,12 @@ export default function Welcome() {
         console.log("Capabilities command triggered");
       },
       description: "explaining what I can do",
-      category: "help",
+      category: "help" as const,
     },
   ];
   
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Hero Section */}
       <header className="relative bg-gradient-to-b from-white to-blue-50 dark:from-gray-900 dark:to-gray-800 pt-16 pb-24">
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-aido-primary/20 rounded-full blur-3xl"></div>
@@ -203,7 +197,6 @@ export default function Welcome() {
         </div>
       </header>
       
-      {/* Features Section */}
       <section className="py-16 bg-white dark:bg-gray-900">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
@@ -252,7 +245,6 @@ export default function Welcome() {
         </div>
       </section>
       
-      {/* Featured Highlight */}
       <section className="py-16 bg-gray-50 dark:bg-gray-800">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
@@ -302,7 +294,6 @@ export default function Welcome() {
         </div>
       </section>
       
-      {/* CTA Section */}
       <section className="py-16 bg-white dark:bg-gray-900">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div

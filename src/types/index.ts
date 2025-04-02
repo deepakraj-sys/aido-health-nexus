@@ -33,3 +33,21 @@ export interface AIFeature {
   forRoles: UserRole[];
   comingSoon?: boolean;
 }
+
+// Speech Recognition type definitions
+declare global {
+  interface Window {
+    SpeechRecognition: typeof SpeechRecognition;
+    webkitSpeechRecognition: typeof SpeechRecognition;
+  }
+}
+
+export interface SpeechRecognitionEvent extends Event {
+  resultIndex: number;
+  results: SpeechRecognitionResultList;
+}
+
+export interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+  message?: string;
+}

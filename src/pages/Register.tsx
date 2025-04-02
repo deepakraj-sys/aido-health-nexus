@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -53,37 +52,36 @@ export default function Register() {
     [UserRole.RESEARCHER]: "I conduct medical research",
   };
   
-  // Voice commands
   const voiceCommands = [
     {
       command: "go back",
       action: () => navigate("/"),
       description: "going back to welcome page",
-      category: "navigation",
+      category: "navigation" as const,
     },
     {
       command: "I am registering as patient",
       action: () => setRole(UserRole.PATIENT),
       description: "selecting patient role",
-      category: "authentication",
+      category: "authentication" as const,
     },
     {
       command: "I am registering as doctor",
       action: () => setRole(UserRole.DOCTOR),
       description: "selecting doctor role",
-      category: "authentication",
+      category: "authentication" as const,
     },
     {
       command: "I am registering as engineer",
       action: () => setRole(UserRole.ENGINEER),
       description: "selecting engineer role",
-      category: "authentication",
+      category: "authentication" as const,
     },
     {
       command: "I am registering as researcher",
       action: () => setRole(UserRole.RESEARCHER),
       description: "selecting researcher role",
-      category: "authentication",
+      category: "authentication" as const,
     },
     {
       command: "submit registration",
@@ -94,7 +92,7 @@ export default function Register() {
         }
       },
       description: "submitting your registration",
-      category: "authentication",
+      category: "authentication" as const,
     },
   ];
   

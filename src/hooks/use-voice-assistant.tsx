@@ -1,6 +1,6 @@
-
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { toast } from '@/components/ui/use-toast';
+import { SpeechRecognitionEvent, SpeechRecognitionErrorEvent } from '@/types';
 
 interface VoiceAssistantOptions {
   onResult?: (transcript: string) => void;
@@ -23,7 +23,7 @@ export function useVoiceAssistant({
   const [transcript, setTranscript] = useState('');
   const [interimTranscript, setInterimTranscript] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
@@ -38,8 +38,8 @@ export function useVoiceAssistant({
       return false;
     }
     
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognitionRef.current = new SpeechRecognition();
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognitionRef.current = new SpeechRecognitionAPI();
     recognitionRef.current.continuous = true;
     recognitionRef.current.interimResults = true;
     recognitionRef.current.lang = 'en-US';
@@ -260,7 +260,6 @@ export function useVoiceAssistant({
   };
 }
 
-// Add type definitions for browsers that might not have them
 declare global {
   interface Window {
     SpeechRecognition: typeof SpeechRecognition;

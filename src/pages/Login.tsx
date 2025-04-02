@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -38,7 +37,7 @@ export default function Login() {
       command: "go back",
       action: () => navigate("/"),
       description: "going back to welcome page",
-      category: "navigation",
+      category: "navigation" as const,
     },
     {
       command: "login with",
@@ -47,7 +46,7 @@ export default function Login() {
         // The actual email would be extracted from transcript
       },
       description: "logging in with your credentials",
-      category: "authentication",
+      category: "authentication" as const,
     },
     {
       command: "my password is",
@@ -55,7 +54,7 @@ export default function Login() {
         // This is handled by the onCommandDetected handler
       },
       description: "setting your password",
-      category: "authentication",
+      category: "authentication" as const,
     },
     {
       command: "submit login",
@@ -66,7 +65,7 @@ export default function Login() {
         }
       },
       description: "submitting your login details",
-      category: "authentication",
+      category: "authentication" as const,
     },
   ];
   
