@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { toast } from '@/components/ui/use-toast';
-import { SpeechRecognitionEvent, SpeechRecognitionErrorEvent } from '@/types';
 
 interface VoiceAssistantOptions {
   onResult?: (transcript: string) => void;
@@ -23,7 +22,7 @@ export function useVoiceAssistant({
   const [transcript, setTranscript] = useState('');
   const [interimTranscript, setInterimTranscript] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
