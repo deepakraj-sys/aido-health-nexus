@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,21 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// AidoHealth Custom Colors
+				aido: {
+					'primary': '#2563eb', // Main blue
+					'secondary': '#0ea5e9', // Light blue
+					'accent': '#6366f1', // Purple accent
+					'success': '#10b981', // Green success
+					'warning': '#f59e0b', // Yellow warning
+					'danger': '#ef4444', // Red danger
+					'patient': '#0ea5e9', // Patient role color
+					'doctor': '#10b981', // Doctor role color
+					'engineer': '#f59e0b', // Engineer role color
+					'researcher': '#6366f1', // Researcher role color
+					'light': '#f8fafc', // Light background
+					'dark': '#0f172a', // Dark background
 				}
 			},
 			borderRadius: {
@@ -84,11 +100,55 @@ export default {
 					to: {
 						height: '0'
 					}
-				}
+				},
+				'pulse-soft': {
+					'0%, 100%': { opacity: '1' },
+					'50%': { opacity: '0.7' },
+				},
+				'bounce-subtle': {
+					'0%, 100%': {
+						transform: 'translateY(0)',
+					},
+					'50%': {
+						transform: 'translateY(-5px)',
+					},
+				},
+				'ripple': {
+					'0%': { width: '0px', height: '0px', opacity: '0.8' },
+					'100%': { width: '400px', height: '400px', opacity: '0' },
+				},
+				'float': {
+					'0%, 100%': { transform: 'translateY(0)' },
+					'50%': { transform: 'translateY(-10px)' },
+				},
+				'fade-in': {
+					'0%': { opacity: '0' },
+					'100%': { opacity: '1' },
+				},
+				'spin-slow': {
+					'0%': { transform: 'rotate(0deg)' },
+					'100%': { transform: 'rotate(360deg)' },
+				},
+				'wave': {
+					'0%': { transform: 'scaleY(1)' },
+					'50%': { transform: 'scaleY(0.5)' },
+					'100%': { transform: 'scaleY(1)' },
+				},
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'pulse-soft': 'pulse-soft 3s infinite ease-in-out',
+				'bounce-subtle': 'bounce-subtle 2s infinite ease-in-out',
+				'ripple': 'ripple 1.5s linear forwards',
+				'float': 'float 6s infinite ease-in-out',
+				'fade-in': 'fade-in 0.5s ease-out forwards',
+				'spin-slow': 'spin-slow 8s linear infinite',
+				'wave-1': 'wave 1.2s infinite ease-in-out 0.1s',
+				'wave-2': 'wave 1.2s infinite ease-in-out 0.2s',
+				'wave-3': 'wave 1.2s infinite ease-in-out 0.3s',
+				'wave-4': 'wave 1.2s infinite ease-in-out 0.4s',
+				'wave-5': 'wave 1.2s infinite ease-in-out 0.5s',
 			}
 		}
 	},
