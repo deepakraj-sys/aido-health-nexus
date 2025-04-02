@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -15,6 +16,7 @@ import {
 import { Mail, Lock, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { VoiceAssistant } from "@/components/VoiceAssistant";
+import { toast } from "@/components/ui/use-toast";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -31,6 +33,34 @@ export default function Login() {
     navigate("/dashboard");
   };
   
+  const handleVoiceEmail = (voiceEmail: string) => {
+    // Clean up email from voice recognition
+    const cleanEmail = voiceEmail.replace(/\s+/g, '').toLowerCase();
+    setEmail(cleanEmail);
+    
+    toast({
+      title: "Email Recognized",
+      description: `Email set to: ${cleanEmail}`,
+    });
+  };
+  
+  const handleVoicePassword = (voicePassword: string) => {
+    setPassword(voicePassword);
+    
+    toast({
+      title: "Password Received",
+      description: "Password has been set",
+    });
+    
+    // Auto-submit after short delay
+    setTimeout(() => {
+      if (email && voicePassword) {
+        login(email, voicePassword);
+        navigate("/dashboard");
+      }
+    }, 1500);
+  };
+  
   // Voice commands
   const voiceCommands = [
     {
@@ -42,8 +72,7 @@ export default function Login() {
     {
       command: "login with",
       action: () => {
-        // This is handled by the onCommandDetected handler
-        // The actual email would be extracted from transcript
+        // This is handled by the onLoginCommand handler
       },
       description: "logging in with your credentials",
       category: "authentication" as const,
@@ -51,7 +80,7 @@ export default function Login() {
     {
       command: "my password is",
       action: () => {
-        // This is handled by the onCommandDetected handler
+        // This is handled by the onPasswordCommand handler
       },
       description: "setting your password",
       category: "authentication" as const,
@@ -164,7 +193,11 @@ export default function Login() {
         </motion.div>
       </div>
       
-      <VoiceAssistant commands={voiceCommands} />
+      <VoiceAssistant 
+        commands={voiceCommands} 
+        onLoginCommand={handleVoiceEmail}
+        onPasswordCommand={handleVoicePassword}
+      />
     </div>
   );
 }

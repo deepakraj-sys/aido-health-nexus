@@ -4,7 +4,7 @@ import { toast } from '@/components/ui/use-toast';
 
 interface VoiceAssistantOptions {
   onResult?: (transcript: string) => void;
-  onCommandDetected?: (command: string) => void;
+  onCommandDetected?: (command: string, fullTranscript?: string) => void;
   onListening?: () => void;
   onStopped?: () => void;
   onWakeWord?: () => void;
@@ -122,7 +122,7 @@ export function useVoiceAssistant({
           setTranscript((prev) => {
             const newTranscript = prev ? `${prev} ${finalText}` : finalText;
             if (onResult) onResult(newTranscript);
-            processCommand(normalizedText);
+            processCommand(normalizedText, newTranscript);
             return newTranscript;
           });
         }
@@ -191,7 +191,33 @@ export function useVoiceAssistant({
     return true;
   }, [isListening, onListening, onResult, onStopped, onWakeWord, wakeWord, isWaitingForWakeWord, speak]);
   
-  const processCommand = useCallback((text: string) => {
+  const processCommand = useCallback((text: string, fullTranscript?: string) => {
+    // Extract login credentials from commands
+    if (text.startsWith("login with")) {
+      const emailMatch = text.match(/login with\s+(.+?)(?:\s+password\s+|$)/i);
+      const passwordMatch = text.match(/password\s+(.+?)$/i);
+      
+      if (emailMatch && emailMatch[1]) {
+        if (onCommandDetected) {
+          onCommandDetected("login with", fullTranscript);
+        }
+        speak("What is your password?");
+        return;
+      }
+      
+      speak("Please provide your email. For example, say 'login with example@mail.com'");
+      return;
+    }
+    
+    // Handle password input
+    if (text.startsWith("password") || text.startsWith("my password is")) {
+      if (onCommandDetected) {
+        onCommandDetected("my password is", fullTranscript);
+      }
+      speak("Logging you in now");
+      return;
+    }
+    
     // Handle special login/register flow
     if (text === "login" || text === "log in" || text === "sign in") {
       speak("What is your email or username?");
@@ -216,7 +242,7 @@ export function useVoiceAssistant({
     for (const [commandPattern, action] of Object.entries(commands)) {
       if (text === commandPattern.toLowerCase() || 
           text.startsWith(commandPattern.toLowerCase())) {
-        if (onCommandDetected) onCommandDetected(commandPattern);
+        if (onCommandDetected) onCommandDetected(commandPattern, fullTranscript);
         action();
         return;
       }

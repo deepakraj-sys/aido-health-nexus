@@ -17,9 +17,15 @@ import { useNavigate } from 'react-router-dom';
 
 interface VoiceAssistantProps {
   commands?: VoiceCommand[];
+  onLoginCommand?: (email: string) => void;
+  onPasswordCommand?: (password: string) => void;
 }
 
-export function VoiceAssistant({ commands = [] }: VoiceAssistantProps) {
+export function VoiceAssistant({ 
+  commands = [],
+  onLoginCommand,
+  onPasswordCommand
+}: VoiceAssistantProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [lastCommand, setLastCommand] = useState<string | null>(null);
   const [assistantResponse, setAssistantResponse] = useState<string | null>(null);
@@ -46,10 +52,34 @@ export function VoiceAssistant({ commands = [] }: VoiceAssistantProps) {
     onWakeWord: () => {
       setAssistantResponse("I'm listening. How can I help you?");
     },
-    onCommandDetected: (command) => {
+    onCommandDetected: (command, fullTranscript) => {
       setLastCommand(command);
       
-      // Generate assistant response
+      // Handle login command
+      if (command === "login with" && fullTranscript && onLoginCommand) {
+        const emailMatch = fullTranscript.match(/login with\s+(.+?)(?:\s+password\s+|$)/i);
+        if (emailMatch && emailMatch[1]) {
+          const email = emailMatch[1].trim();
+          onLoginCommand(email);
+          setAssistantResponse(`Email set to ${email}. What is your password?`);
+          speak(`Email set to ${email}. What is your password?`);
+          return;
+        }
+      }
+      
+      // Handle password command
+      if (command === "my password is" && fullTranscript && onPasswordCommand) {
+        const passwordMatch = fullTranscript.match(/password(?:\sis)?\s+(.+?)$/i);
+        if (passwordMatch && passwordMatch[1]) {
+          const password = passwordMatch[1].trim();
+          onPasswordCommand(password);
+          setAssistantResponse("Password received. Logging you in.");
+          speak("Password received. Logging you in.");
+          return;
+        }
+      }
+      
+      // Generate assistant response for other commands
       const matchedCommand = commands.find(cmd => cmd.command === command);
       if (matchedCommand) {
         const responses = [
