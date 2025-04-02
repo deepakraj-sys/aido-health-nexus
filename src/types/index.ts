@@ -1,5 +1,3 @@
-
-
 // User types
 export enum UserRole {
   PATIENT = 'patient',
@@ -22,7 +20,7 @@ export interface VoiceCommand {
   command: string;
   action: () => void;
   description: string;
-  category: 'navigation' | 'authentication' | 'general' | 'help' | 'accessibility';
+  category: 'navigation' | 'authentication' | 'general' | 'help' | 'accessibility' | 'detection' | 'data';
 }
 
 export interface AIFeature {
@@ -66,4 +64,3 @@ declare global {
     webkitSpeechRecognition: new () => SpeechRecognition;
   }
 }
-

@@ -1,10 +1,8 @@
-
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Brain, Eye, Activity, FileText, Upload, Clock } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button, Badge, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui";
 import { VoiceAssistant } from "@/components/VoiceAssistant";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,7 +24,6 @@ export default function EarlyDetection() {
     return null;
   }
   
-  // Voice commands
   const voiceCommands = [
     {
       command: "go back to dashboard",
@@ -68,7 +65,6 @@ export default function EarlyDetection() {
     },
   ];
   
-  // Handle starting analysis
   const handleStartAnalysis = (type: string) => {
     setIsAnalyzing(true);
     
@@ -77,7 +73,6 @@ export default function EarlyDetection() {
       description: `${type} analysis is now running...`,
     });
     
-    // Simulate analysis completion after 3 seconds
     setTimeout(() => {
       setIsAnalyzing(false);
       toast({
