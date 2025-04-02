@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Mic, MicOff, Volume2, Info } from 'lucide-react';
+import { Mic, MicOff, Volume2, Info, Ear } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -35,12 +35,17 @@ export function VoiceAssistant({ commands = [] }: VoiceAssistantProps) {
   const {
     isListening,
     isSpeaking,
+    isWaitingForWakeWord,
     transcript,
     interimTranscript,
     toggle,
     speak,
   } = useVoiceAssistant({
     commands: commandsMap,
+    wakeWord: "WAKE-UP",
+    onWakeWord: () => {
+      setAssistantResponse("I'm listening. How can I help you?");
+    },
     onCommandDetected: (command) => {
       setLastCommand(command);
       
@@ -63,7 +68,7 @@ export function VoiceAssistant({ commands = [] }: VoiceAssistantProps) {
   useEffect(() => {
     const hasWelcomed = sessionStorage.getItem('welcomedUser');
     if (!hasWelcomed) {
-      const welcomeMessage = "Welcome to AidoHealth Nexus. I'm your voice assistant. Say 'Help' or click the microphone to get started.";
+      const welcomeMessage = "Welcome to AidoHealth Nexus. I'm your voice assistant. Say 'WAKE-UP' to activate, then try commands like 'Help' or 'What can I do here?'";
       setAssistantResponse(welcomeMessage);
       
       // Delay speech to ensure the browser is ready
@@ -77,7 +82,7 @@ export function VoiceAssistant({ commands = [] }: VoiceAssistantProps) {
   // Generate and speak personalized greeting when user logs in
   useEffect(() => {
     if (user) {
-      const userGreeting = `Hello ${user.name}. Welcome to your ${user.role} dashboard. How can I help you today?`;
+      const userGreeting = `Hello ${user.name}. Welcome to your ${user.role} dashboard. Say 'WAKE-UP' and I'll assist you.`;
       setAssistantResponse(userGreeting);
       speak(userGreeting);
     }
@@ -99,7 +104,16 @@ export function VoiceAssistant({ commands = [] }: VoiceAssistantProps) {
                   </div>
                 )}
                 
-                {isListening && (
+                {isWaitingForWakeWord && isListening && (
+                  <div className="mb-2 p-2 bg-yellow-500/10 rounded-lg">
+                    <p className="flex gap-2 items-center text-amber-700 dark:text-amber-500">
+                      <Ear className="h-4 w-4" />
+                      <span>Waiting for "WAKE-UP" command...</span>
+                    </p>
+                  </div>
+                )}
+                
+                {isListening && !isWaitingForWakeWord && (
                   <>
                     <p className="text-xs text-muted-foreground mb-1">Listening...</p>
                     <div className="flex items-center gap-2">
@@ -130,8 +144,9 @@ export function VoiceAssistant({ commands = [] }: VoiceAssistantProps) {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          setAssistantResponse("Here are some commands you can try: Help, Login, Register, Tell me about AidoHealth, What can you do?");
-                          speak("Here are some commands you can try: Help, Login, Register, Tell me about AidoHealth, or What can you do?");
+                          const helpMessage = "Say 'WAKE-UP' to activate me, then try these commands: Help, Login, Register, Tell me about AidoHealth, What can you do here?, Go back, or Open profile.";
+                          setAssistantResponse(helpMessage);
+                          speak(helpMessage);
                         }}
                       >
                         <Info size={14} />
@@ -162,7 +177,13 @@ export function VoiceAssistant({ commands = [] }: VoiceAssistantProps) {
           <TooltipTrigger asChild>
             <Button
               size="lg"
-              className={`rounded-full w-14 h-14 shadow-lg ${isListening ? 'bg-primary animate-pulse-soft' : 'bg-primary/80 hover:bg-primary'}`}
+              className={`rounded-full w-14 h-14 shadow-lg ${
+                isListening 
+                  ? isWaitingForWakeWord 
+                    ? 'bg-amber-500 animate-pulse-slow' 
+                    : 'bg-primary animate-pulse-soft'
+                  : 'bg-primary/80 hover:bg-primary'
+              }`}
               onClick={() => {
                 if (!isExpanded) {
                   setIsExpanded(true);

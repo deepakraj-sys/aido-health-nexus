@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { toast } from '@/components/ui/use-toast';
 
@@ -6,8 +7,10 @@ interface VoiceAssistantOptions {
   onCommandDetected?: (command: string) => void;
   onListening?: () => void;
   onStopped?: () => void;
+  onWakeWord?: () => void;
   commands?: Record<string, () => void>;
   autoStart?: boolean;
+  wakeWord?: string;
 }
 
 export function useVoiceAssistant({
@@ -15,10 +18,13 @@ export function useVoiceAssistant({
   onCommandDetected,
   onListening,
   onStopped,
+  onWakeWord,
   commands = {},
   autoStart = false,
+  wakeWord = "WAKE-UP",
 }: VoiceAssistantOptions = {}) {
   const [isListening, setIsListening] = useState(false);
+  const [isWaitingForWakeWord, setIsWaitingForWakeWord] = useState(true);
   const [transcript, setTranscript] = useState('');
   const [interimTranscript, setInterimTranscript] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -60,12 +66,27 @@ export function useVoiceAssistant({
       }
       
       if (finalText) {
-        setTranscript((prev) => {
-          const newTranscript = prev ? `${prev} ${finalText}` : finalText;
-          if (onResult) onResult(newTranscript);
-          processCommand(finalText.toLowerCase().trim());
-          return newTranscript;
-        });
+        const normalizedText = finalText.toLowerCase().trim();
+        
+        // Check for wake word if in waiting state
+        if (isWaitingForWakeWord && normalizedText === wakeWord.toLowerCase()) {
+          setIsWaitingForWakeWord(false);
+          if (onWakeWord) onWakeWord();
+          speak("Hello! How can I help you?");
+          setTranscript('');
+          setInterimTranscript('');
+          return;
+        }
+        
+        // Only process commands if not waiting for wake word
+        if (!isWaitingForWakeWord) {
+          setTranscript((prev) => {
+            const newTranscript = prev ? `${prev} ${finalText}` : finalText;
+            if (onResult) onResult(newTranscript);
+            processCommand(normalizedText);
+            return newTranscript;
+          });
+        }
       }
       
       setInterimTranscript(interimText);
@@ -129,9 +150,30 @@ export function useVoiceAssistant({
     }
     
     return true;
-  }, [isListening, onListening, onResult, onStopped]);
+  }, [isListening, onListening, onResult, onStopped, onWakeWord, wakeWord, isWaitingForWakeWord, speak]);
   
   const processCommand = useCallback((text: string) => {
+    // Handle special login/register flow
+    if (text === "login" || text === "log in" || text === "sign in") {
+      speak("What is your email or username?");
+      return;
+    }
+    
+    if (text === "register" || text === "sign up" || text === "create account") {
+      speak("Let's create an account. What is your name?");
+      return;
+    }
+    
+    // Handle navigation commands
+    if (text === "go back" || text === "back") {
+      if (commands["go back"]) {
+        commands["go back"]();
+        speak("Going back");
+        return;
+      }
+    }
+    
+    // Process regular commands
     for (const [commandPattern, action] of Object.entries(commands)) {
       if (text === commandPattern.toLowerCase() || 
           text.startsWith(commandPattern.toLowerCase())) {
@@ -140,7 +182,12 @@ export function useVoiceAssistant({
         return;
       }
     }
-  }, [commands, onCommandDetected]);
+    
+    // If no command matches, provide help
+    if (text === "what can i do here" || text === "help me" || text === "help") {
+      speak("You can navigate the app, login, register, or ask me for help. Try saying commands like 'go back' or 'open profile'.");
+    }
+  }, [commands, onCommandDetected, speak]);
   
   const start = useCallback(() => {
     if (!recognitionRef.current) {
@@ -152,6 +199,8 @@ export function useVoiceAssistant({
       recognitionRef.current?.start();
       setTranscript('');
       setInterimTranscript('');
+      setIsWaitingForWakeWord(true);
+      speak("Voice assistant is now listening. Say 'WAKE-UP' to activate.");
     } catch (error) {
       console.error('Error starting speech recognition:', error);
       toast({
@@ -160,17 +209,22 @@ export function useVoiceAssistant({
         variant: "destructive"
       });
     }
-  }, [initializeRecognition]);
+  }, [initializeRecognition, speak]);
   
   const stop = useCallback(() => {
     try {
       recognitionRef.current?.stop();
       setIsListening(false);
+      setIsWaitingForWakeWord(true);
       if (onStopped) onStopped();
     } catch (error) {
       console.error('Error stopping speech recognition:', error);
     }
   }, [onStopped]);
+  
+  const resetWakeWordState = useCallback(() => {
+    setIsWaitingForWakeWord(true);
+  }, []);
   
   const toggle = useCallback(() => {
     if (isListening) {
@@ -238,11 +292,13 @@ export function useVoiceAssistant({
   return {
     isListening,
     isSpeaking,
+    isWaitingForWakeWord,
     transcript,
     interimTranscript,
     start,
     stop,
     toggle,
     speak,
+    resetWakeWordState
   };
 }
