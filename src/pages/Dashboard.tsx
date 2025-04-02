@@ -16,6 +16,7 @@ import {
   Tablet,
   User,
   Wand2,
+  Eye,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { DashboardLayout } from "@/components/DashboardLayout";
@@ -45,6 +46,14 @@ export default function Dashboard() {
         icon: "sparkles",
         route: "/health-assistant",
         forRoles: [UserRole.PATIENT],
+      },
+      {
+        id: "early-detection",
+        name: "Early Detection & Diagnosis",
+        description: "AI-powered analysis to detect disabilities at an early stage.",
+        icon: "brain",
+        route: "/early-detection",
+        forRoles: [UserRole.PATIENT, UserRole.DOCTOR],
       },
       {
         id: "symptom-checker",
@@ -80,6 +89,14 @@ export default function Dashboard() {
         icon: "activity",
         route: "/patient-analytics",
         forRoles: [UserRole.DOCTOR],
+      },
+      {
+        id: "early-detection",
+        name: "Early Detection & Diagnosis",
+        description: "AI-powered analysis of patient data to detect disabilities early.",
+        icon: "brain",
+        route: "/early-detection",
+        forRoles: [UserRole.PATIENT, UserRole.DOCTOR],
       },
       {
         id: "ai-diagnosis",
@@ -182,6 +199,7 @@ export default function Dashboard() {
   // Feature icon mapping
   const featureIcons: Record<string, React.ReactNode> = {
     "sparkles": <Sparkles className="h-6 w-6" />,
+    "brain": <Brain className="h-6 w-6" />,
     "activity": <Activity className="h-6 w-6" />,
     "video": <MessageCircle className="h-6 w-6" />,
     "pill": <Clock className="h-6 w-6" />,
@@ -192,7 +210,7 @@ export default function Dashboard() {
     "wand2": <Wand2 className="h-6 w-6" />,
     "bar-chart-3": <Activity className="h-6 w-6" />,
     "database": <Database className="h-6 w-6" />,
-    "brain": <Brain className="h-6 w-6" />,
+    "eye": <Eye className="h-6 w-6" />,
   };
   
   // Role icon mapping
@@ -223,6 +241,12 @@ export default function Dashboard() {
       command: "go to settings",
       action: () => navigate("/settings"),
       description: "navigating to settings",
+      category: "navigation" as const,
+    },
+    {
+      command: "open early detection",
+      action: () => navigate("/early-detection"),
+      description: "opening early detection and diagnosis",
       category: "navigation" as const,
     },
     {
