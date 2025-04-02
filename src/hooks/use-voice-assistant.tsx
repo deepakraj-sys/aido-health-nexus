@@ -26,7 +26,6 @@ export function useVoiceAssistant({
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  // Initialize speech recognition
   const initializeRecognition = useCallback(() => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       toast({
@@ -76,7 +75,6 @@ export function useVoiceAssistant({
       console.error('Speech recognition error:', event.error);
       
       if (event.error === 'no-speech') {
-        // This is a common error that isn't really an issue - just restart
         if (isListening && recognitionRef.current) {
           try {
             recognitionRef.current.stop();
@@ -112,7 +110,6 @@ export function useVoiceAssistant({
       }
     };
     
-    // Initialize speech synthesis
     if ('speechSynthesis' in window) {
       synthRef.current = window.speechSynthesis;
       utteranceRef.current = new SpeechSynthesisUtterance();
@@ -135,9 +132,7 @@ export function useVoiceAssistant({
   }, [isListening, onListening, onResult, onStopped]);
   
   const processCommand = useCallback((text: string) => {
-    // Simple command matching
     for (const [commandPattern, action] of Object.entries(commands)) {
-      // Simple exact match or startsWith match
       if (text === commandPattern.toLowerCase() || 
           text.startsWith(commandPattern.toLowerCase())) {
         if (onCommandDetected) onCommandDetected(commandPattern);
@@ -200,18 +195,14 @@ export function useVoiceAssistant({
       utteranceRef.current = new SpeechSynthesisUtterance();
     }
     
-    // Cancel any ongoing speech
     synthRef.current.cancel();
     
-    // Configure new speech
     utteranceRef.current.text = text;
     utteranceRef.current.rate = rate;
     utteranceRef.current.pitch = pitch;
     
-    // Use a neutral voice if available
     if (synthRef.current.getVoices().length > 0) {
       const voices = synthRef.current.getVoices();
-      // Try to find a natural sounding English voice
       const preferredVoice = voices.find(
         (voice) => voice.name.includes('Google') && voice.lang.includes('en')
       ) || voices.find(
@@ -223,12 +214,10 @@ export function useVoiceAssistant({
       }
     }
     
-    // Speak the text
     synthRef.current.speak(utteranceRef.current);
     setIsSpeaking(true);
   }, []);
   
-  // Clean up on unmount
   useEffect(() => {
     return () => {
       if (recognitionRef.current && isListening) {
@@ -240,7 +229,6 @@ export function useVoiceAssistant({
     };
   }, [isListening, isSpeaking]);
   
-  // Auto-start if requested
   useEffect(() => {
     if (autoStart) {
       start();
@@ -257,11 +245,4 @@ export function useVoiceAssistant({
     toggle,
     speak,
   };
-}
-
-declare global {
-  interface Window {
-    SpeechRecognition: typeof SpeechRecognition;
-    webkitSpeechRecognition: typeof SpeechRecognition;
-  }
 }
