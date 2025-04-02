@@ -17,6 +17,7 @@ import {
   User,
   Wand2,
   Eye,
+  Dna,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { DashboardLayout } from "@/components/DashboardLayout";
@@ -99,6 +100,14 @@ export default function Dashboard() {
         forRoles: [UserRole.PATIENT, UserRole.DOCTOR],
       },
       {
+        id: "bioinformatics",
+        name: "AI + Bioinformatics",
+        description: "AI-driven genome sequencing to detect and prevent potential disabilities.",
+        icon: "dna",
+        route: "/bioinformatics",
+        forRoles: [UserRole.DOCTOR, UserRole.RESEARCHER],
+      },
+      {
         id: "ai-diagnosis",
         name: "AI Diagnosis Support",
         description: "Get AI-powered suggestions for diagnoses and treatments.",
@@ -169,6 +178,14 @@ export default function Dashboard() {
         forRoles: [UserRole.RESEARCHER],
       },
       {
+        id: "bioinformatics",
+        name: "AI + Bioinformatics",
+        description: "AI-driven genome sequencing to detect and prevent potential disabilities.",
+        icon: "dna",
+        route: "/bioinformatics",
+        forRoles: [UserRole.DOCTOR, UserRole.RESEARCHER],
+      },
+      {
         id: "research-collaboration",
         name: "Research Collaboration",
         description: "Collaborate with other researchers on projects.",
@@ -211,6 +228,7 @@ export default function Dashboard() {
     "bar-chart-3": <Activity className="h-6 w-6" />,
     "database": <Database className="h-6 w-6" />,
     "eye": <Eye className="h-6 w-6" />,
+    "dna": <Dna className="h-6 w-6" />,
   };
   
   // Role icon mapping

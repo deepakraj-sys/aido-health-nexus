@@ -1,3 +1,4 @@
+
 // User types
 export enum UserRole {
   PATIENT = 'patient',
@@ -20,7 +21,7 @@ export interface VoiceCommand {
   command: string;
   action: () => void;
   description: string;
-  category: 'navigation' | 'authentication' | 'general' | 'help' | 'accessibility' | 'detection' | 'data';
+  category: 'navigation' | 'authentication' | 'general' | 'help' | 'accessibility' | 'detection' | 'data' | 'bioinformatics';
 }
 
 export interface AIFeature {
@@ -31,6 +32,27 @@ export interface AIFeature {
   route: string;
   forRoles: UserRole[];
   comingSoon?: boolean;
+}
+
+// Bioinformatics types
+export interface GenomeData {
+  id: string;
+  patientId: string;
+  patientName: string;
+  sampleDate: string;
+  analysisStatus: 'pending' | 'in-progress' | 'completed';
+  results?: BioinformaticsResult;
+}
+
+export interface BioinformaticsResult {
+  riskFactors: {
+    condition: string;
+    riskLevel: 'low' | 'moderate' | 'high';
+    confidence: number;
+    biomarkers: string[];
+  }[];
+  recommendations: string[];
+  preventativeMeasures: string[];
 }
 
 // Speech Recognition type definitions

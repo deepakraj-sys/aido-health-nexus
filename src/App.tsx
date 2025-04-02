@@ -11,6 +11,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import EarlyDetection from "./pages/EarlyDetection";
+import Bioinformatics from "./pages/Bioinformatics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/register" element={<Register />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/early-detection" element={<EarlyDetection />} />
+            <Route path="/bioinformatics" element={<Bioinformatics />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
