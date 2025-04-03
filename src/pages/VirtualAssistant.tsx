@@ -231,7 +231,7 @@ export default function VirtualAssistant() {
                     <li>Tracking symptoms</li>
                     <li>Setting reminders</li>
                   </ul>
-                </div>
+                </CardContent>
               </Card>
               
               <Card>
