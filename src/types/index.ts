@@ -12,7 +12,7 @@ export interface User {
   email: string;
   role: UserRole;
   phone?: string;
-  username?: string; // Added username property
+  username?: string;
   avatar?: string;
 }
 
@@ -51,7 +51,7 @@ export interface GenomeData {
   };
 }
 
-// Web Speech API interfaces - properly defined
+// Web Speech API interfaces
 interface SpeechRecognitionErrorEvent extends Event {
   error: string;
   message: string;
@@ -75,7 +75,7 @@ interface SpeechRecognition extends EventTarget {
   abort: () => void;
 }
 
-// Fix the global declaration to avoid type/value confusion
+// Fix the global declaration
 declare global {
   interface Window {
     SpeechRecognition: {new(): SpeechRecognition};

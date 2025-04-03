@@ -13,6 +13,37 @@ interface VoiceAssistantOptions {
   wakeWord?: string;
 }
 
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+  message: string;
+}
+
+interface SpeechRecognitionEvent extends Event {
+  resultIndex: number;
+  results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: (event: SpeechRecognitionEvent) => void;
+  onerror: (event: SpeechRecognitionErrorEvent) => void;
+  onend: () => void;
+  onstart: () => void;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+}
+
+interface SpeechSynthesisUtteranceEvent extends Event {
+  utterance: SpeechSynthesisUtterance;
+  charIndex?: number;
+  charLength?: number;
+  elapsedTime?: number;
+  name?: string;
+}
+
 export function useVoiceAssistant({
   onResult,
   onCommandDetected,
