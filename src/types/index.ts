@@ -26,6 +26,17 @@ export interface AIFeature {
   comingSoon?: boolean;
 }
 
+export interface AIModel {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  capabilities: string[];
+  inputFormat: "text" | "image" | "audio" | "multimodal";
+  accuracy?: number;
+  lastUpdated: string;
+}
+
 export interface VoiceCommand {
   command: string;
   action: () => void;
@@ -49,6 +60,38 @@ export interface GenomeData {
     recommendations: string[];
     preventativeMeasures: string[];
   };
+}
+
+export interface PatientRecord {
+  id: string;
+  name: string;
+  age: number;
+  condition: string;
+  lastVisit: string;
+  status: "stable" | "improving" | "needs-attention" | "critical";
+  medicalHistory?: string[];
+  vitalSigns?: {
+    bloodPressure: string;
+    heartRate: number;
+    temperature: number;
+    respiratoryRate: number;
+  };
+  aiRiskAssessment?: {
+    overallRisk: "high" | "moderate" | "low";
+    factors: string[];
+    recommendations: string[];
+  };
+}
+
+export interface AIAnalysisResult {
+  id: string;
+  timestamp: string;
+  patientId: string;
+  analysisTool: string;
+  confidence: number;
+  findings: string[];
+  recommendations: string[];
+  rawData?: any;
 }
 
 // Web Speech API interfaces
