@@ -1,14 +1,18 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, UserRole } from '@/types';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { User as AppUser, UserRole } from '@/types';
 import { toast } from '@/components/ui/use-toast';
+import { ProfileRow } from '@/types/supabase';
 
 interface AuthContextType {
-  user: User | null;
+  user: AppUser | null;
+  session: Session | null;
   isLoading: boolean;
   error: string | null;
   login: (email: string, password: string, role?: UserRole) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   register: (userData: {
     email: string;
     password: string;
@@ -20,10 +24,11 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
+  session: null,
   isLoading: false,
   error: null,
   login: async () => {},
-  logout: () => {},
+  logout: async () => {},
   register: async () => {},
   isAuthenticated: false,
 });
@@ -34,92 +39,90 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
-// Mock users for demo
-const mockUsers: User[] = [
-  {
-    id: '1',
-    username: 'patient1',
-    email: 'patient@example.com',
-    role: UserRole.PATIENT,
-    name: 'John Patient',
-    avatar: '',
-  },
-  {
-    id: '2',
-    username: 'doctor1',
-    email: 'doctor@example.com',
-    role: UserRole.DOCTOR,
-    name: 'Dr. Sarah Smith',
-    avatar: '',
-  },
-  {
-    id: '3',
-    username: 'engineer1',
-    email: 'engineer@example.com',
-    role: UserRole.ENGINEER,
-    name: 'Mike Engineer',
-    avatar: '',
-  },
-  {
-    id: '4',
-    username: 'researcher1',
-    email: 'researcher@example.com',
-    role: UserRole.RESEARCHER,
-    name: 'Dr. Alan Researcher',
-    avatar: '',
-  },
-];
-
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Handle auth state changes
   useEffect(() => {
-    // Check for saved user data in local storage
-    const savedUser = localStorage.getItem('aidoHealthUser');
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (e) {
-        console.error('Failed to parse saved user data');
-        localStorage.removeItem('aidoHealthUser');
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, currentSession) => {
+        setSession(currentSession);
+        if (currentSession?.user) {
+          // Use setTimeout to prevent potential deadlocks in Supabase SDK
+          setTimeout(() => {
+            fetchUserProfile(currentSession.user.id);
+          }, 0);
+        } else {
+          setUser(null);
+        }
       }
-    }
-    setIsLoading(false);
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      setSession(currentSession);
+      if (currentSession?.user) {
+        fetchUserProfile(currentSession.user.id);
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const login = async (email: string, password: string, role?: UserRole) => {
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        const userProfile: AppUser = {
+          id: data.id,
+          name: data.name || '',
+          email: data.email || '',
+          role: (data.role as UserRole) || UserRole.PATIENT,
+          phone: data.phone || undefined,
+          username: data.username || undefined,
+          avatar: data.avatar || undefined,
+        };
+        setUser(userProfile);
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const login = async (email: string, password: string) => {
     setIsLoading(true);
     setError(null);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 800));
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
       
-      // Find user by email
-      const foundUser = mockUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-      
-      if (!foundUser) {
-        throw new Error('User not found');
-      }
-      
-      // If role is specified, check if it matches
-      if (role && foundUser.role !== role) {
-        throw new Error(`This email is registered with a different role. Please log in as ${foundUser.role}`);
-      }
-      
-      // Password validation would happen here in a real app
-      
-      // Set user in state and local storage
-      setUser(foundUser);
-      localStorage.setItem('aidoHealthUser', JSON.stringify(foundUser));
+      if (error) throw error;
       
       toast({
         title: "Login Successful",
-        description: `Welcome back, ${foundUser.name}!`,
+        description: "Welcome back!",
       });
-    } catch (err) {
+    } catch (err: any) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed';
       setError(errorMessage);
       toast({
@@ -132,13 +135,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('aidoHealthUser');
-    toast({
-      title: "Logged Out",
-      description: "You have been logged out successfully",
-    });
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Logged Out",
+        description: "You have been logged out successfully",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Logout Failed",
+        description: err.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const register = async (userData: {
@@ -151,36 +161,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setError(null);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Check if email is already in use
-      if (mockUsers.some(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
-        throw new Error('Email already in use');
-      }
-      
-      // Create new user
-      const newUser: User = {
-        id: `${mockUsers.length + 1}`,
-        username: userData.email.split('@')[0],
+      // Sign up with email and password
+      const { data, error } = await supabase.auth.signUp({
         email: userData.email,
-        role: userData.role,
-        name: userData.name,
-        avatar: '',
-      };
+        password: userData.password,
+        options: {
+          data: {
+            role: userData.role,
+            name: userData.name,
+          },
+        }
+      });
       
-      // In a real app, we would add the user to the database here
-      mockUsers.push(newUser);
+      if (error) throw error;
       
-      // Log in the new user
-      setUser(newUser);
-      localStorage.setItem('aidoHealthUser', JSON.stringify(newUser));
+      // User profile will be created by the database trigger
       
       toast({
         title: "Registration Successful",
-        description: `Welcome to AidoHealth, ${newUser.name}!`,
+        description: `Welcome to AidoHealth, ${userData.name}!`,
       });
-    } catch (err) {
+    } catch (err: any) {
       const errorMessage = err instanceof Error ? err.message : 'Registration failed';
       setError(errorMessage);
       toast({
@@ -197,12 +198,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     <AuthContext.Provider
       value={{
         user,
+        session,
         isLoading,
         error,
         login,
         logout,
         register,
-        isAuthenticated: !!user,
+        isAuthenticated: !!session?.user,
       }}
     >
       {children}

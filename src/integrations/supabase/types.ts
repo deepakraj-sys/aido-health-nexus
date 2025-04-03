@@ -9,7 +9,233 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      ai_analysis_results: {
+        Row: {
+          analysis_tool: string
+          confidence: number | null
+          findings: string[] | null
+          id: string
+          patient_id: string
+          raw_data: Json | null
+          recommendations: string[] | null
+          timestamp: string | null
+        }
+        Insert: {
+          analysis_tool: string
+          confidence?: number | null
+          findings?: string[] | null
+          id?: string
+          patient_id: string
+          raw_data?: Json | null
+          recommendations?: string[] | null
+          timestamp?: string | null
+        }
+        Update: {
+          analysis_tool?: string
+          confidence?: number | null
+          findings?: string[] | null
+          id?: string
+          patient_id?: string
+          raw_data?: Json | null
+          recommendations?: string[] | null
+          timestamp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_analysis_results_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patient_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_risk_assessments: {
+        Row: {
+          created_at: string | null
+          factors: string[] | null
+          id: string
+          overall_risk: string
+          patient_id: string
+          recommendations: string[] | null
+        }
+        Insert: {
+          created_at?: string | null
+          factors?: string[] | null
+          id?: string
+          overall_risk: string
+          patient_id: string
+          recommendations?: string[] | null
+        }
+        Update: {
+          created_at?: string | null
+          factors?: string[] | null
+          id?: string
+          overall_risk?: string
+          patient_id?: string
+          recommendations?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_risk_assessments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patient_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      genome_data: {
+        Row: {
+          analysis_status: string
+          created_at: string | null
+          id: string
+          patient_id: string
+          results: Json | null
+          sample_date: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          analysis_status: string
+          created_at?: string | null
+          id?: string
+          patient_id: string
+          results?: Json | null
+          sample_date?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          analysis_status?: string
+          created_at?: string | null
+          id?: string
+          patient_id?: string
+          results?: Json | null
+          sample_date?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "genome_data_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patient_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patient_records: {
+        Row: {
+          age: number
+          condition: string
+          created_at: string | null
+          id: string
+          last_visit: string
+          medical_history: string[] | null
+          name: string
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          age: number
+          condition: string
+          created_at?: string | null
+          id?: string
+          last_visit?: string
+          medical_history?: string[] | null
+          name: string
+          status: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          age?: number
+          condition?: string
+          created_at?: string | null
+          id?: string
+          last_visit?: string
+          medical_history?: string[] | null
+          name?: string
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string | null
+          phone: string | null
+          role: string | null
+          updated_at: string | null
+          username: string | null
+        }
+        Insert: {
+          avatar?: string | null
+          created_at?: string | null
+          email?: string | null
+          id: string
+          name?: string | null
+          phone?: string | null
+          role?: string | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Update: {
+          avatar?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string | null
+          phone?: string | null
+          role?: string | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
+      vital_signs: {
+        Row: {
+          blood_pressure: string | null
+          heart_rate: number | null
+          id: string
+          patient_id: string
+          recorded_at: string | null
+          respiratory_rate: number | null
+          temperature: number | null
+        }
+        Insert: {
+          blood_pressure?: string | null
+          heart_rate?: number | null
+          id?: string
+          patient_id: string
+          recorded_at?: string | null
+          respiratory_rate?: number | null
+          temperature?: number | null
+        }
+        Update: {
+          blood_pressure?: string | null
+          heart_rate?: number | null
+          id?: string
+          patient_id?: string
+          recorded_at?: string | null
+          respiratory_rate?: number | null
+          temperature?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vital_signs_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patient_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
