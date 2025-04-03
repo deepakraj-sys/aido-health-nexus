@@ -2,7 +2,7 @@
 import { Database } from '@/integrations/supabase/types';
 
 // Type aliases for Supabase tables
-export type ProfileRow = Database['public']['Tables']['profiles']['Row'] & { phone_verified?: boolean };
+export type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 export type PatientRecordRow = Database['public']['Tables']['patient_records']['Row'];
 export type VitalSignsRow = Database['public']['Tables']['vital_signs']['Row'];
 export type AIRiskAssessmentRow = Database['public']['Tables']['ai_risk_assessments']['Row'];
@@ -16,6 +16,7 @@ export type MessageRow = {
   sent_at: string;
   read_at?: string;
   message_type: string;
+  created_at: string;
 };
 export type AppointmentRow = {
   id: string;
@@ -26,6 +27,29 @@ export type AppointmentRow = {
   status: string;
   notes?: string;
   created_at: string;
+};
+export type MedicationRow = {
+  id: string;
+  patient_id: string;
+  name: string;
+  dosage: string;
+  frequency: string;
+  start_date: string;
+  end_date?: string;
+  reminder_times: string[];
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+};
+export type SymptomRow = {
+  id: string;
+  patient_id: string;
+  symptom_name: string;
+  severity: number;
+  duration?: string;
+  recorded_at: string;
+  notes?: string;
+  ai_analysis?: any;
 };
 
 // Insert types
@@ -50,6 +74,24 @@ export type InsertAppointment = {
   status: string;
   notes?: string;
 };
+export type InsertMedication = {
+  patient_id: string;
+  name: string;
+  dosage: string;
+  frequency: string;
+  start_date: string;
+  end_date?: string;
+  reminder_times?: string[];
+  notes?: string;
+};
+export type InsertSymptom = {
+  patient_id: string;
+  symptom_name: string;
+  severity: number;
+  duration?: string;
+  notes?: string;
+  ai_analysis?: any;
+};
 
 // Update types
 export type UpdateProfile = Database['public']['Tables']['profiles']['Update'] & { phone_verified?: boolean };
@@ -67,4 +109,20 @@ export type UpdateAppointment = {
   end_time?: string;
   status?: string;
   notes?: string;
+};
+export type UpdateMedication = {
+  name?: string;
+  dosage?: string;
+  frequency?: string;
+  start_date?: string;
+  end_date?: string;
+  reminder_times?: string[];
+  notes?: string;
+};
+export type UpdateSymptom = {
+  symptom_name?: string;
+  severity?: number;
+  duration?: string;
+  notes?: string;
+  ai_analysis?: any;
 };

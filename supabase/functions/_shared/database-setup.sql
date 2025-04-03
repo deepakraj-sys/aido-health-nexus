@@ -128,3 +128,73 @@ AS $$
   ORDER BY 
     pr.last_visit DESC;
 $$;
+
+-- Function to get patient symptoms with AI analysis
+CREATE OR REPLACE FUNCTION get_patient_symptoms(p_patient_id UUID)
+RETURNS TABLE (
+  id UUID,
+  patient_id UUID,
+  symptom_name TEXT,
+  severity INTEGER,
+  duration TEXT,
+  recorded_at TIMESTAMPTZ,
+  notes TEXT,
+  ai_analysis JSONB
+)
+LANGUAGE SQL
+SECURITY DEFINER
+AS $$
+  SELECT 
+    s.id,
+    s.patient_id,
+    s.symptom_name,
+    s.severity,
+    s.duration,
+    s.recorded_at,
+    s.notes,
+    s.ai_analysis
+  FROM 
+    symptoms s
+  WHERE 
+    s.patient_id = p_patient_id
+  ORDER BY 
+    s.recorded_at DESC;
+$$;
+
+-- Function to get patient medications with reminders
+CREATE OR REPLACE FUNCTION get_patient_medications(p_patient_id UUID)
+RETURNS TABLE (
+  id UUID,
+  patient_id UUID,
+  name TEXT,
+  dosage TEXT,
+  frequency TEXT,
+  start_date DATE,
+  end_date DATE,
+  reminder_times TEXT[],
+  notes TEXT,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ
+)
+LANGUAGE SQL
+SECURITY DEFINER
+AS $$
+  SELECT 
+    m.id,
+    m.patient_id,
+    m.name,
+    m.dosage,
+    m.frequency,
+    m.start_date,
+    m.end_date,
+    m.reminder_times,
+    m.notes,
+    m.created_at,
+    m.updated_at
+  FROM 
+    medications m
+  WHERE 
+    m.patient_id = p_patient_id
+  ORDER BY 
+    m.created_at DESC;
+$$;

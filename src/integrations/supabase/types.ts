@@ -85,6 +85,54 @@ export type Database = {
           },
         ]
       }
+      appointments: {
+        Row: {
+          created_at: string
+          doctor_id: string
+          end_time: string
+          id: string
+          notes: string | null
+          patient_id: string
+          start_time: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          doctor_id: string
+          end_time: string
+          id?: string
+          notes?: string | null
+          patient_id: string
+          start_time: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          doctor_id?: string
+          end_time?: string
+          id?: string
+          notes?: string | null
+          patient_id?: string
+          start_time?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       genome_data: {
         Row: {
           analysis_status: string
@@ -119,6 +167,104 @@ export type Database = {
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patient_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medications: {
+        Row: {
+          created_at: string
+          dosage: string
+          end_date: string | null
+          frequency: string
+          id: string
+          name: string
+          notes: string | null
+          patient_id: string
+          reminder_times: string[]
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dosage: string
+          end_date?: string | null
+          frequency: string
+          id?: string
+          name: string
+          notes?: string | null
+          patient_id: string
+          reminder_times?: string[]
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dosage?: string
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          patient_id?: string
+          reminder_times?: string[]
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medications_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          message_type: string
+          read_at: string | null
+          receiver_id: string
+          sender_id: string
+          sent_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          message_type?: string
+          read_at?: string | null
+          receiver_id: string
+          sender_id: string
+          sent_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          message_type?: string
+          read_at?: string | null
+          receiver_id?: string
+          sender_id?: string
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -170,6 +316,7 @@ export type Database = {
           id: string
           name: string | null
           phone: string | null
+          phone_verified: boolean | null
           role: string | null
           updated_at: string | null
           username: string | null
@@ -181,6 +328,7 @@ export type Database = {
           id: string
           name?: string | null
           phone?: string | null
+          phone_verified?: boolean | null
           role?: string | null
           updated_at?: string | null
           username?: string | null
@@ -192,11 +340,53 @@ export type Database = {
           id?: string
           name?: string | null
           phone?: string | null
+          phone_verified?: boolean | null
           role?: string | null
           updated_at?: string | null
           username?: string | null
         }
         Relationships: []
+      }
+      symptoms: {
+        Row: {
+          ai_analysis: Json | null
+          duration: string | null
+          id: string
+          notes: string | null
+          patient_id: string
+          recorded_at: string
+          severity: number
+          symptom_name: string
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          duration?: string | null
+          id?: string
+          notes?: string | null
+          patient_id: string
+          recorded_at?: string
+          severity: number
+          symptom_name: string
+        }
+        Update: {
+          ai_analysis?: Json | null
+          duration?: string | null
+          id?: string
+          notes?: string | null
+          patient_id?: string
+          recorded_at?: string
+          severity?: number
+          symptom_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "symptoms_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vital_signs: {
         Row: {

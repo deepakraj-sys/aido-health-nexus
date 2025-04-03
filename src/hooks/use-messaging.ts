@@ -27,12 +27,11 @@ export function useMessaging(initialMessages: Message[] = []) {
     const fetchMessages = async () => {
       setLoading(true);
       try {
-        // Use a raw SQL query to work around type issues
         const { data, error } = await supabase
           .from('messages')
           .select('*')
           .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-          .order('sent_at', { ascending: true }) as { data: MessageRow[] | null, error: any };
+          .order('sent_at', { ascending: true });
           
         if (error) throw error;
         
@@ -100,12 +99,11 @@ export function useMessaging(initialMessages: Message[] = []) {
         message_type: 'text'
       };
       
-      // Use a raw SQL query to work around type issues
       const { data, error } = await supabase
         .from('messages')
         .insert(newMessage)
         .select('*')
-        .single() as { data: MessageRow | null, error: any };
+        .single();
         
       if (error) throw error;
       
@@ -156,12 +154,11 @@ export function useMessaging(initialMessages: Message[] = []) {
     if (!messageIds.length || !user) return;
     
     try {
-      // Use a raw SQL query to work around type issues
       const { error } = await supabase
         .from('messages')
         .update({ read_at: new Date().toISOString() })
         .in('id', messageIds)
-        .eq('receiver_id', user.id) as { error: any };
+        .eq('receiver_id', user.id);
         
       if (error) throw error;
     } catch (err: any) {

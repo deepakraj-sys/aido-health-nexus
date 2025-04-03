@@ -31,3 +31,12 @@ enabled = false
 [edge_functions]
 [edge_functions.initialize-db]
 verify_jwt = false
+
+[edge_functions.health-assistant]
+verify_jwt = true
+
+[edge_functions.early-detection]
+verify_jwt = true
+
+[edge_functions.symptom-checker]
+verify_jwt = true
