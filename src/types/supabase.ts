@@ -8,6 +8,8 @@ export type VitalSignsRow = Database['public']['Tables']['vital_signs']['Row'];
 export type AIRiskAssessmentRow = Database['public']['Tables']['ai_risk_assessments']['Row'];
 export type AIAnalysisResultRow = Database['public']['Tables']['ai_analysis_results']['Row'];
 export type GenomeDataRow = Database['public']['Tables']['genome_data']['Row'];
+export type MessageRow = Database['public']['Tables']['messages']['Row'];
+export type AppointmentRow = Database['public']['Tables']['appointments']['Row'];
 
 // Insert types
 export type InsertProfile = Database['public']['Tables']['profiles']['Insert'];
@@ -16,6 +18,8 @@ export type InsertVitalSigns = Database['public']['Tables']['vital_signs']['Inse
 export type InsertAIRiskAssessment = Database['public']['Tables']['ai_risk_assessments']['Insert'];
 export type InsertAIAnalysisResult = Database['public']['Tables']['ai_analysis_results']['Insert'];
 export type InsertGenomeData = Database['public']['Tables']['genome_data']['Insert'];
+export type InsertMessage = Database['public']['Tables']['messages']['Insert'];
+export type InsertAppointment = Database['public']['Tables']['appointments']['Insert'];
 
 // Update types
 export type UpdateProfile = Database['public']['Tables']['profiles']['Update'];
@@ -24,3 +28,5 @@ export type UpdateVitalSigns = Database['public']['Tables']['vital_signs']['Upda
 export type UpdateAIRiskAssessment = Database['public']['Tables']['ai_risk_assessments']['Update'];
 export type UpdateAIAnalysisResult = Database['public']['Tables']['ai_analysis_results']['Update'];
 export type UpdateGenomeData = Database['public']['Tables']['genome_data']['Update'];
+export type UpdateMessage = Database['public']['Tables']['messages']['Update'];
+export type UpdateAppointment = Database['public']['Tables']['appointments']['Update'];
