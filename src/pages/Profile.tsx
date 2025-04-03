@@ -1,48 +1,47 @@
-
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, User, Mail, Phone, Key, Camera, Check } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { VoiceAssistant } from "@/components/VoiceAssistant";
-import { useAuth } from "@/contexts/AuthContext";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/components/ui/use-toast";
+import { UserRole } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
-import { UpdateProfile, ProfileRow } from "@/types/supabase";
-import { TwilioVerifyPhone } from "@/components/TwilioVerifyPhone";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ProfileRow } from "@/types/supabase";
+import { Loader2, CheckCircle, AlertTriangle } from "lucide-react";
 
 export default function Profile() {
-  const { user, isAuthenticated } = useAuth();
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    username: "",
-    avatar: ""
-  });
-  const [password, setPassword] = useState({
-    current: "",
-    new: "",
-    confirm: ""
-  });
+  const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
+  const [phoneVerificationSent, setPhoneVerificationSent] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
+  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
   
-  // Fetch user profile data when component mounts
+  const { user, signOut } = useAuth();
+
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!isAuthenticated || !user) return;
-      
+      setLoading(true);
       try {
-        setLoading(true);
+        if (!user) {
+          setError("User not found");
+          return;
+        }
+        
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
@@ -52,19 +51,18 @@ export default function Profile() {
         if (error) throw error;
         
         setProfile(data);
-        setFormData({
-          name: data.name || "",
-          email: data.email || "",
-          phone: data.phone || "",
-          username: data.username || "",
-          avatar: data.avatar || ""
-        });
+        setName(data.name || "");
+        setUsername(data.username || "");
+        setEmail(data.email || "");
+        setPhone(data.phone || "");
+        setIsPhoneVerified(data.phone_verified || false);
       } catch (err: any) {
         console.error("Error fetching profile:", err);
+        setError(err.message);
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to load profile information"
+          description: "Failed to load profile"
         });
       } finally {
         setLoading(false);
@@ -72,101 +70,122 @@ export default function Profile() {
     };
     
     fetchProfile();
-  }, [isAuthenticated, user]);
+  }, [user]);
   
-  // Handle form input change
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  const handleEditProfile = () => {
+    setIsEditing(true);
   };
   
-  // Update profile information
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-    
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setName(profile?.name || "");
+    setUsername(profile?.username || "");
+    setEmail(profile?.email || "");
+    setPhone(profile?.phone || "");
+  };
+  
+  const handleSaveProfile = async () => {
+    setIsSaving(true);
     try {
-      setSaving(true);
-      
-      const updates: UpdateProfile = {
-        name: formData.name,
-        username: formData.username || null,
-        phone: formData.phone || null,
-        avatar: formData.avatar || null,
-        updated_at: new Date().toISOString()
-      };
+      if (!user) {
+        setError("User not found");
+        return;
+      }
       
       const { error } = await supabase
         .from('profiles')
-        .update(updates)
+        .update({
+          name,
+          username,
+          email,
+          phone
+        })
         .eq('id', user.id);
         
       if (error) throw error;
       
+      setProfile({ ...profile, name, username, email, phone } as ProfileRow);
+      setIsEditing(false);
       toast({
         title: "Profile Updated",
-        description: "Your profile information has been updated successfully"
+        description: "Your profile has been updated successfully"
       });
     } catch (err: any) {
       console.error("Error updating profile:", err);
+      setError(err.message);
       toast({
         variant: "destructive",
-        title: "Update Failed",
-        description: err.message || "Failed to update profile information"
+        title: "Error",
+        description: "Failed to update profile"
       });
     } finally {
-      setSaving(false);
+      setIsSaving(false);
     }
   };
   
-  // Update password
-  const handleUpdatePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (password.new !== password.confirm) {
-      toast({
-        variant: "destructive",
-        title: "Password Mismatch",
-        description: "The new passwords do not match"
-      });
-      return;
-    }
-    
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    setSignOutError(null);
     try {
-      setSaving(true);
-      
-      const { error } = await supabase.auth.updateUser({
-        password: password.new
-      });
-      
-      if (error) throw error;
-      
+      await signOut();
       toast({
-        title: "Password Updated",
-        description: "Your password has been updated successfully"
-      });
-      
-      // Reset password fields
-      setPassword({
-        current: "",
-        new: "",
-        confirm: ""
+        title: "Signed Out",
+        description: "You have been signed out successfully"
       });
     } catch (err: any) {
-      console.error("Error updating password:", err);
+      console.error("Error signing out:", err);
+      setSignOutError(err.message);
       toast({
         variant: "destructive",
-        title: "Update Failed",
-        description: err.message || "Failed to update password"
+        title: "Error",
+        description: "Failed to sign out"
       });
     } finally {
-      setSaving(false);
+      setIsSigningOut(false);
     }
   };
   
+  const handleSendVerificationCode = async () => {
+    setPhoneVerificationSent(true);
+    // In a real application, this would trigger sending a verification code to the user's phone
+    toast({
+      title: "Verification Code Sent",
+      description: "A verification code has been sent to your phone"
+    });
+  };
+  
+  const handleVerifyCode = async () => {
+    setIsVerifying(true);
+    setVerificationError(null);
+    try {
+      // In a real application, this would verify the code against the one sent to the user's phone
+      if (verificationCode === "123456") {
+        setIsPhoneVerified(true);
+        toast({
+          title: "Phone Verified",
+          description: "Your phone number has been verified successfully"
+        });
+      } else {
+        setVerificationError("Invalid verification code");
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Invalid verification code"
+        });
+      }
+    } catch (err: any) {
+      console.error("Error verifying code:", err);
+      setVerificationError(err.message);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to verify code"
+      });
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
   // Voice commands
   const voiceCommands = [
     {
@@ -176,43 +195,18 @@ export default function Profile() {
       category: "navigation" as const,
     },
     {
-      command: "save profile",
-      action: () => {
-        const form = document.getElementById("profile-form") as HTMLFormElement;
-        if (form) form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
-      },
-      description: "saving profile information",
-      category: "user" as const,
+      command: "sign out",
+      action: handleSignOut,
+      description: "signing out of your account",
+      category: "authentication" as const, // Changed from "user" to "authentication"
     },
     {
-      command: "go to dashboard",
-      action: () => window.location.href = "/dashboard",
-      description: "navigating to dashboard",
-      category: "navigation" as const,
-    },
+      command: "save profile",
+      action: handleSaveProfile,
+      description: "saving profile changes",
+      category: "settings" as const, // Changed from "user" to "settings"
+    }
   ];
-
-  if (!isAuthenticated || !user) {
-    return (
-      <DashboardLayout>
-        <div className="flex justify-center items-center h-[60vh]">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>Authentication Required</CardTitle>
-              <CardDescription>
-                Please log in to view your profile.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={() => window.location.href = "/login"}>
-                Go to Login
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </DashboardLayout>
-    );
-  }
 
   return (
     <DashboardLayout>
@@ -223,230 +217,151 @@ export default function Profile() {
         className="space-y-6"
       >
         <div>
-          <h1 className="text-3xl font-bold">Your Profile</h1>
+          <h1 className="text-3xl font-bold">Profile</h1>
           <p className="text-muted-foreground mt-1">
-            Manage your account information and settings
+            Manage your account settings and profile information
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="md:col-span-1">
-            <CardHeader>
-              <CardTitle>Account</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center text-center">
-              <Avatar className="h-24 w-24 mb-4">
-                {formData.avatar ? (
-                  <AvatarImage src={formData.avatar} alt={formData.name} />
-                ) : (
-                  <AvatarFallback>
-                    {formData.name
-                      ? formData.name.substring(0, 2).toUpperCase()
-                      : "U"}
-                  </AvatarFallback>
-                )}
-              </Avatar>
-              <h3 className="font-medium text-lg">{formData.name}</h3>
-              <p className="text-muted-foreground text-sm mb-2">{formData.email}</p>
-              {profile?.role && (
-                <Badge>
-                  {profile.role.charAt(0).toUpperCase() + profile.role.slice(1)}
-                </Badge>
-              )}
-              
-              <div className="mt-4 w-full">
-                <Button variant="outline" className="w-full">
-                  <Camera className="mr-2 h-4 w-4" />
-                  Change Photo
-                </Button>
-              </div>
-              
-              {/* Show verified badge if phone is verified */}
-              {profile?.phone_verified && profile.phone && (
-                <div className="mt-4 flex items-center">
-                  <Check className="text-green-500 h-4 w-4 mr-1" />
-                  <span className="text-sm text-green-600">
-                    Phone Verified: {profile.phone}
-                  </span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <div className="md:col-span-2">
-            <Tabs defaultValue="profile">
-              <TabsList className="mb-4">
-                <TabsTrigger value="profile">Profile</TabsTrigger>
-                <TabsTrigger value="security">Security</TabsTrigger>
-                <TabsTrigger value="verification">Verification</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="profile">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Profile Information</CardTitle>
-                    <CardDescription>
-                      Update your personal information
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {loading ? (
-                      <div className="flex justify-center py-8">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                      </div>
-                    ) : (
-                      <form id="profile-form" onSubmit={handleUpdateProfile} className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="name" className="flex items-center">
-                            <User className="h-4 w-4 mr-1" />
-                            Full Name
-                          </Label>
-                          <Input
-                            id="name"
-                            name="name"
-                            value={formData.name}
-                            onChange={handleChange}
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="email" className="flex items-center">
-                            <Mail className="h-4 w-4 mr-1" />
-                            Email
-                          </Label>
-                          <Input
-                            id="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={handleChange}
-                            disabled
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Contact support to change your email address
-                          </p>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="phone" className="flex items-center">
-                            <Phone className="h-4 w-4 mr-1" />
-                            Phone Number
-                          </Label>
-                          <Input
-                            id="phone"
-                            name="phone"
-                            value={formData.phone}
-                            onChange={handleChange}
-                            placeholder="Enter your phone number"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="username">Username</Label>
-                          <Input
-                            id="username"
-                            name="username"
-                            value={formData.username}
-                            onChange={handleChange}
-                            placeholder="Choose a username"
-                          />
-                        </div>
-                        
-                        <Button type="submit" disabled={saving}>
-                          {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          Save Changes
-                        </Button>
-                      </form>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="security">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Password</CardTitle>
-                    <CardDescription>
-                      Update your password to keep your account secure
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <form onSubmit={handleUpdatePassword} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="currentPassword" className="flex items-center">
-                          <Key className="h-4 w-4 mr-1" />
-                          Current Password
-                        </Label>
-                        <Input
-                          id="currentPassword"
-                          type="password"
-                          value={password.current}
-                          onChange={(e) => setPassword({ ...password, current: e.target.value })}
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="newPassword">New Password</Label>
-                        <Input
-                          id="newPassword"
-                          type="password"
-                          value={password.new}
-                          onChange={(e) => setPassword({ ...password, new: e.target.value })}
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                        <Input
-                          id="confirmPassword"
-                          type="password"
-                          value={password.confirm}
-                          onChange={(e) => setPassword({ ...password, confirm: e.target.value })}
-                        />
-                      </div>
-                      
-                      <Button 
-                        type="submit" 
-                        disabled={saving || !password.current || !password.new || !password.confirm}
-                      >
-                        {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Update Password
-                      </Button>
-                    </form>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="verification">
-                {profile?.phone_verified ? (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Check className="h-5 w-5 text-green-500" />
-                        Phone Verified
-                      </CardTitle>
-                      <CardDescription>
-                        Your phone number ({profile.phone}) has been successfully verified.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button variant="outline" onClick={() => {
-                        // This would reset the verification status
-                        toast({
-                          title: "Feature Not Available",
-                          description: "Phone number change is not available at this time."
-                        });
-                      }}>
-                        Change Phone Number
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <TwilioVerifyPhone />
-                )}
-              </TabsContent>
-            </Tabs>
+        {error && (
+          <div className="rounded-md border border-destructive/20 bg-destructive/10 p-4 text-destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <p className="text-sm font-medium">Error: {error}</p>
           </div>
-        </div>
+        )}
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Account Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2">Loading profile...</span>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
+                    placeholder="Enter your name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    disabled={!isEditing}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    placeholder="Enter your username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    disabled={!isEditing}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={!isEditing}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input
+                    id="phone"
+                    placeholder="Enter your phone number"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    disabled={!isEditing || phoneVerificationSent}
+                  />
+                </div>
+
+                {!isPhoneVerified ? (
+                  <>
+                    {!phoneVerificationSent ? (
+                      <Button
+                        variant="secondary"
+                        onClick={handleSendVerificationCode}
+                        disabled={!isEditing || phoneVerificationSent}
+                      >
+                        Send Verification Code
+                      </Button>
+                    ) : (
+                      <div className="space-y-2">
+                        <Label htmlFor="verificationCode">Verification Code</Label>
+                        <Input
+                          id="verificationCode"
+                          placeholder="Enter verification code"
+                          value={verificationCode}
+                          onChange={(e) => setVerificationCode(e.target.value)}
+                          disabled={isVerifying}
+                        />
+                        <Button
+                          onClick={handleVerifyCode}
+                          disabled={isVerifying}
+                        >
+                          {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Verify Code
+                        </Button>
+                        {verificationError && (
+                          <p className="text-sm text-destructive mt-1">{verificationError}</p>
+                        )}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <p className="text-sm text-muted-foreground">Phone number verified</p>
+                  </div>
+                )}
+
+                <div className="flex justify-end space-x-2">
+                  {!isEditing ? (
+                    <Button onClick={handleEditProfile}>Edit Profile</Button>
+                  ) : (
+                    <>
+                      <Button variant="outline" onClick={handleCancelEdit}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleSaveProfile} disabled={isSaving}>
+                        {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Save Changes
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Account Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button
+              variant="destructive"
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+            >
+              {isSigningOut && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Sign Out
+            </Button>
+            {signOutError && (
+              <p className="text-sm text-destructive mt-2">{signOutError}</p>
+            )}
+          </CardContent>
+        </Card>
       </motion.div>
 
       <VoiceAssistant commands={voiceCommands} />

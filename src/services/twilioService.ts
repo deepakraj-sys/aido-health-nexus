@@ -64,11 +64,19 @@ export const twilioService = {
       if (error) throw error;
       
       if (data.valid) {
+        // Get current user session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session || !session.user) {
+          throw new Error('No authenticated user found');
+        }
+        
         // Update the user's profile to mark the phone as verified
         const { error: updateError } = await supabase
           .from('profiles')
-          .update({ phone_verified: true })
-          .eq('id', supabase.auth.getSession().then(({ data }) => data.session?.user.id));
+          .update({ 
+            phone_verified: true 
+          })
+          .eq('id', session.user.id);
         
         if (updateError) throw updateError;
         

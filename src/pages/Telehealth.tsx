@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,8 +20,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { UserRole } from "@/types";
 
+interface AppointmentWithProfiles extends AppointmentRow {
+  doctor: ProfileRow;
+  patient: ProfileRow;
+}
+
 export default function Telehealth() {
-  const [appointments, setAppointments] = useState<(AppointmentRow & { doctor: ProfileRow, patient: ProfileRow })[]>([]);
+  const [appointments, setAppointments] = useState<AppointmentWithProfiles[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [doctors, setDoctors] = useState<ProfileRow[]>([]);
@@ -43,37 +47,23 @@ export default function Telehealth() {
     const fetchAppointments = async () => {
       setLoading(true);
       try {
-        let query;
+        let query: any;
         
         if (user.role === UserRole.DOCTOR) {
           // For doctors, get all appointments where they are the doctor
           query = supabase
-            .from('appointments')
-            .select(`
-              *,
-              doctor:doctor_id(id, name, email, avatar, role),
-              patient:patient_id(id, name, email, avatar, role)
-            `)
-            .eq('doctor_id', user.id)
-            .order('start_time', { ascending: true });
+            .rpc('get_doctor_appointments', { doctor_id: user.id });
         } else {
           // For patients, get all appointments where they are the patient
           query = supabase
-            .from('appointments')
-            .select(`
-              *,
-              doctor:doctor_id(id, name, email, avatar, role),
-              patient:patient_id(id, name, email, avatar, role)
-            `)
-            .eq('patient_id', user.id)
-            .order('start_time', { ascending: true });
+            .rpc('get_patient_appointments', { patient_id: user.id });
         }
         
         const { data, error } = await query;
         
         if (error) throw error;
         
-        setAppointments(data as any || []);
+        setAppointments(data as AppointmentWithProfiles[] || []);
       } catch (err: any) {
         setError(err.message);
         toast({
@@ -149,18 +139,20 @@ export default function Telehealth() {
       // Calculate end time based on duration
       const endTime = new Date(startTime);
       endTime.setMinutes(endTime.getMinutes() + parseInt(appointmentDuration));
+
+      const appointmentData = {
+        patient_id: user.id,
+        doctor_id: selectedDoctor,
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+        status: 'scheduled',
+        notes: notes.trim() || null
+      };
       
       const { data, error } = await supabase
         .from('appointments')
-        .insert({
-          patient_id: user.id,
-          doctor_id: selectedDoctor,
-          start_time: startTime.toISOString(),
-          end_time: endTime.toISOString(),
-          status: 'scheduled',
-          notes: notes.trim() || null
-        })
-        .select();
+        .insert(appointmentData)
+        .select() as { data: AppointmentRow[] | null, error: any };
         
       if (error) throw error;
       
@@ -195,7 +187,7 @@ export default function Telehealth() {
       const { error } = await supabase
         .from('appointments')
         .update({ status: 'cancelled' })
-        .eq('id', appointmentId);
+        .eq('id', appointmentId) as { error: any };
         
       if (error) throw error;
       

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -18,12 +17,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { UserRole } from "@/types";
 import { format } from "date-fns";
 
+interface PatientRecordWithDetails extends PatientRecordRow {
+  vital_signs: VitalSignsRow | null;
+  ai_risk_assessment: AIRiskAssessmentRow | null;
+}
+
 export default function PatientRecords() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [patients, setPatients] = useState<(PatientRecordRow & { 
-    vital_signs: VitalSignsRow | null,
-    ai_risk_assessment: AIRiskAssessmentRow | null 
-  })[]>([]);
+  const [patients, setPatients] = useState<PatientRecordWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [analyzingPatient, setAnalyzingPatient] = useState<string | null>(null);
@@ -47,31 +48,11 @@ export default function PatientRecords() {
         
         // For a real implementation with Supabase
         const { data, error } = await supabase
-          .from('patient_records')
-          .select(`
-            *,
-            vital_signs: vital_signs(
-              blood_pressure, heart_rate, temperature, respiratory_rate
-            ),
-            ai_risk_assessment: ai_risk_assessments(
-              overall_risk, factors, recommendations
-            )
-          `)
-          .order('created_at', { ascending: false });
+          .rpc('get_patient_records_with_details') as { data: PatientRecordWithDetails[] | null, error: any };
         
         if (error) throw error;
         
-        // We need to format the returned data to match our expected structure
-        const formattedData = (data || []).map(item => {
-          return {
-            ...item,
-            // Convert nested arrays to single items
-            vital_signs: item.vital_signs ? item.vital_signs[0] : null,
-            ai_risk_assessment: item.ai_risk_assessment ? item.ai_risk_assessment[0] : null
-          };
-        });
-        
-        setPatients(formattedData);
+        setPatients(data || []);
         setError(null);
       } catch (err: any) {
         console.error("Error fetching patient data:", err);
