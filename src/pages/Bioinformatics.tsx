@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -110,7 +109,7 @@ export default function Bioinformatics() {
         handleStartAnalysis();
       },
       description: "starting genome analysis",
-      category: "bioinformatics",
+      category: "data",
     },
     {
       command: "show biomarker database",
@@ -118,7 +117,7 @@ export default function Bioinformatics() {
         setActiveTab("biomarker-database");
       },
       description: "showing biomarker database",
-      category: "bioinformatics",
+      category: "data",
     },
     {
       command: "upload new genome data",

@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { Mic, MicOff, Volume2, Info, Ear, AlertCircle, ExclamationTriangle } from 'lucide-react';
+import { Mic, MicOff, Volume2, Info, Ear, AlertCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -36,7 +35,6 @@ export function VoiceAssistant({
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  // Convert commands to the format expected by useVoiceAssistant
   const commandsMap: Record<string, () => void> = {};
   commands.forEach((cmd) => {
     commandsMap[cmd.command] = cmd.action;
@@ -64,7 +62,6 @@ export function VoiceAssistant({
       setLastCommand(command);
       console.log("Command detected:", command, "Full transcript:", fullTranscript);
       
-      // Handle login command
       if (command === "login with" && fullTranscript && onLoginCommand) {
         const emailMatch = fullTranscript.match(/login with\s+(.+?)(?:\s+password\s+|$)/i);
         if (emailMatch && emailMatch[1]) {
@@ -76,7 +73,6 @@ export function VoiceAssistant({
         }
       }
       
-      // Handle password command
       if (command === "my password is" && fullTranscript && onPasswordCommand) {
         const passwordMatch = fullTranscript.match(/password(?:\sis)?\s+(.+?)$/i);
         if (passwordMatch && passwordMatch[1]) {
@@ -88,7 +84,6 @@ export function VoiceAssistant({
         }
       }
       
-      // Generate assistant response for other commands
       const matchedCommand = commands.find(cmd => cmd.command === command);
       if (matchedCommand) {
         const responses = [
@@ -115,7 +110,6 @@ export function VoiceAssistant({
           description: "Voice assistant requires microphone permission to work"
         });
       } else if (error.message === "no-speech") {
-        // Just log this, it's handled internally by the hook
         console.log("No speech detected");
       } else {
         toast({
@@ -127,7 +121,6 @@ export function VoiceAssistant({
     }
   });
   
-  // Check browser support on component mount
   useEffect(() => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       setBrowserSupportError("Your browser doesn't support speech recognition. Try using Chrome, Edge, or Safari.");
@@ -147,21 +140,18 @@ export function VoiceAssistant({
     }
   }, []);
   
-  // Reset permission error when permission status changes
   useEffect(() => {
     if (hasPermission) {
       setPermissionError(null);
     }
   }, [hasPermission]);
   
-  // Welcome user on first load
   useEffect(() => {
     const hasWelcomed = sessionStorage.getItem('welcomedUser');
     if (!hasWelcomed && !browserSupportError) {
       const welcomeMessage = "Welcome to AidoHealth Nexus. I'm your voice assistant. Say 'WAKE-UP' to activate, then try commands like 'Help' or 'What can I do here?'";
       setAssistantResponse(welcomeMessage);
       
-      // Delay speech to ensure the browser is ready
       setTimeout(() => {
         speak(welcomeMessage);
         sessionStorage.setItem('welcomedUser', 'true');
@@ -169,7 +159,6 @@ export function VoiceAssistant({
     }
   }, [speak, browserSupportError]);
   
-  // Generate and speak personalized greeting when user logs in
   useEffect(() => {
     if (user && !browserSupportError) {
       const userGreeting = `Hello ${user.name}. Welcome to your ${user.role} dashboard. Say 'WAKE-UP' and I'll assist you.`;
@@ -178,7 +167,6 @@ export function VoiceAssistant({
     }
   }, [user, speak, browserSupportError]);
 
-  // Handle microphone permission issues
   const requestMicrophoneAccess = async () => {
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -188,7 +176,6 @@ export function VoiceAssistant({
         title: "Microphone Access Granted",
         description: "You can now use the voice assistant",
       });
-      // Try to start listening
       start();
     } catch (err) {
       console.error("Microphone permission error:", err);
@@ -247,7 +234,7 @@ export function VoiceAssistant({
             <div className="space-y-2">
               {browserSupportError && (
                 <Alert variant="destructive" className="mb-2">
-                  <ExclamationTriangle className="h-4 w-4" />
+                  <AlertTriangle className="h-4 w-4" />
                   <AlertTitle>Browser Not Supported</AlertTitle>
                   <AlertDescription className="text-xs">
                     {browserSupportError}

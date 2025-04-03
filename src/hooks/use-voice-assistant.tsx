@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { toast } from '@/components/ui/use-toast';
 
@@ -60,6 +59,25 @@ export function useVoiceAssistant({
     
     checkMicPermission();
   }, []);
+
+  // Define the stop function early to avoid reference before declaration
+  const stop = useCallback(() => {
+    try {
+      // Clear any pending restart timers
+      if (restartTimerRef.current) {
+        clearTimeout(restartTimerRef.current);
+        restartTimerRef.current = null;
+      }
+      
+      console.log("Stopping speech recognition");
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      setIsWaitingForWakeWord(true);
+      if (onStopped) onStopped();
+    } catch (error) {
+      console.error('Error stopping speech recognition:', error);
+    }
+  }, [onStopped]);
 
   // Move speak function up before it's referenced
   const speak = useCallback((text: string, rate = 1, pitch = 1) => {
@@ -465,25 +483,6 @@ export function useVoiceAssistant({
       }
     }
   }, [initializeRecognition, speak, permissionState, recognitionActive, onError]);
-  
-  // Stop speech recognition
-  const stop = useCallback(() => {
-    try {
-      // Clear any pending restart timers
-      if (restartTimerRef.current) {
-        clearTimeout(restartTimerRef.current);
-        restartTimerRef.current = null;
-      }
-      
-      console.log("Stopping speech recognition");
-      recognitionRef.current?.stop();
-      setIsListening(false);
-      setIsWaitingForWakeWord(true);
-      if (onStopped) onStopped();
-    } catch (error) {
-      console.error('Error stopping speech recognition:', error);
-    }
-  }, [onStopped]);
   
   // Reset wake word state
   const resetWakeWordState = useCallback(() => {
