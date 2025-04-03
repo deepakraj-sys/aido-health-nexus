@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -88,14 +87,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (error) throw error;
 
       if (data) {
+        const profile = data as ProfileRow;
         const userProfile: AppUser = {
-          id: data.id,
-          name: data.name || '',
-          email: data.email || '',
-          role: (data.role as UserRole) || UserRole.PATIENT,
-          phone: data.phone || undefined,
-          username: data.username || undefined,
-          avatar: data.avatar || undefined,
+          id: profile.id,
+          name: profile.name || '',
+          email: profile.email || '',
+          role: (profile.role as UserRole) || UserRole.PATIENT,
+          phone: profile.phone || undefined,
+          username: profile.username || undefined,
+          avatar: profile.avatar || undefined,
         };
         setUser(userProfile);
       }

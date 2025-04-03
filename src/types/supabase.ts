@@ -1,7 +1,7 @@
 
 import { Database } from '@/integrations/supabase/types';
 
-// Type helpers for Supabase tables
+// Type aliases for Supabase tables
 export type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 export type PatientRecordRow = Database['public']['Tables']['patient_records']['Row'];
 export type VitalSignsRow = Database['public']['Tables']['vital_signs']['Row'];
