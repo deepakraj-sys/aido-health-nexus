@@ -8,6 +8,7 @@ interface VoiceAssistantOptions {
   onListening?: () => void;
   onStopped?: () => void;
   onWakeWord?: () => void;
+  onError?: (error: { message: string }) => void;
   commands?: Record<string, () => void>;
   autoStart?: boolean;
   wakeWord?: string;
@@ -19,6 +20,7 @@ export function useVoiceAssistant({
   onListening,
   onStopped,
   onWakeWord,
+  onError,
   commands = {},
   autoStart = false,
   wakeWord = "WAKE-UP",
@@ -30,10 +32,12 @@ export function useVoiceAssistant({
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [permissionState, setPermissionState] = useState<'prompt' | 'granted' | 'denied'>('prompt');
+  const [recognitionActive, setRecognitionActive] = useState(false);
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const restartTimerRef = useRef<number | null>(null);
 
   // Check for microphone permissions on mount
   useEffect(() => {
@@ -59,6 +63,8 @@ export function useVoiceAssistant({
 
   // Move speak function up before it's referenced
   const speak = useCallback((text: string, rate = 1, pitch = 1) => {
+    if (!text) return;
+    
     if (!synthRef.current || !utteranceRef.current) {
       if (!('speechSynthesis' in window)) {
         toast({
@@ -73,12 +79,16 @@ export function useVoiceAssistant({
       utteranceRef.current = new SpeechSynthesisUtterance();
     }
     
-    synthRef.current.cancel();
+    // Cancel any ongoing speech
+    if (synthRef.current.speaking) {
+      synthRef.current.cancel();
+    }
     
     utteranceRef.current.text = text;
     utteranceRef.current.rate = rate;
     utteranceRef.current.pitch = pitch;
     
+    // Set voice if available
     if (synthRef.current.getVoices().length > 0) {
       const voices = synthRef.current.getVoices();
       const preferredVoice = voices.find(
@@ -92,11 +102,25 @@ export function useVoiceAssistant({
       }
     }
     
-    synthRef.current.speak(utteranceRef.current);
-    setIsSpeaking(true);
+    // Attach event handlers
+    utteranceRef.current.onstart = () => setIsSpeaking(true);
+    utteranceRef.current.onend = () => setIsSpeaking(false);
+    utteranceRef.current.onerror = (event) => {
+      console.error('Speech synthesis error:', event);
+      setIsSpeaking(false);
+    };
+    
+    // Speak the text
+    try {
+      synthRef.current.speak(utteranceRef.current);
+    } catch (error) {
+      console.error("Error during speech synthesis:", error);
+      setIsSpeaking(false);
+    }
   }, []);
 
   const initializeRecognition = useCallback(() => {
+    // Check for browser support
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       toast({
         title: "Voice Assistant Unavailable",
@@ -106,15 +130,18 @@ export function useVoiceAssistant({
       return false;
     }
     
+    // Initialize the recognition object
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognitionRef.current = new SpeechRecognitionAPI();
     recognitionRef.current.continuous = true;
     recognitionRef.current.interimResults = true;
     recognitionRef.current.lang = 'en-US';
     
+    // Event handlers
     recognitionRef.current.onstart = () => {
-      setIsListening(true);
       console.log("Voice recognition started");
+      setIsListening(true);
+      setRecognitionActive(true);
       if (onListening) onListening();
     };
     
@@ -122,6 +149,7 @@ export function useVoiceAssistant({
       let interimText = '';
       let finalText = '';
       
+      // Process results
       for (let i = event.resultIndex; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
           finalText += event.results[i][0].transcript;
@@ -130,6 +158,13 @@ export function useVoiceAssistant({
         }
       }
       
+      // Handle interim text
+      if (interimText) {
+        console.log("Interim transcript:", interimText);
+        setInterimTranscript(interimText);
+      }
+      
+      // Handle final text
       if (finalText) {
         console.log("Recognition result:", finalText);
         const normalizedText = finalText.toLowerCase().trim();
@@ -155,11 +190,6 @@ export function useVoiceAssistant({
           });
         }
       }
-      
-      if (interimText) {
-        console.log("Interim transcript:", interimText);
-      }
-      setInterimTranscript(interimText);
     };
     
     recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
@@ -168,42 +198,88 @@ export function useVoiceAssistant({
       if (event.error === 'not-allowed') {
         setHasPermission(false);
         setPermissionState('denied');
-        toast({
-          title: "Microphone Access Denied",
-          description: "Voice assistant requires microphone permission",
-          variant: "destructive"
-        });
+        
+        if (onError) {
+          onError({ message: 'not-allowed' });
+        } else {
+          toast({
+            title: "Microphone Access Denied",
+            description: "Voice assistant requires microphone permission",
+            variant: "destructive"
+          });
+        }
         stop();
         return;
       }
       
       if (event.error === 'no-speech') {
         console.log("No speech detected, restarting recognition");
-        if (isListening && recognitionRef.current) {
+        if (onError) {
+          onError({ message: 'no-speech' });
+        }
+        
+        // Only restart if we're still supposed to be listening
+        if (isListening && recognitionRef.current && recognitionActive) {
           try {
             recognitionRef.current.stop();
-            setTimeout(() => {
-              if (recognitionRef.current) recognitionRef.current.start();
-            }, 100);
+            
+            // Use setTimeout to avoid rapid cycling
+            if (restartTimerRef.current) {
+              clearTimeout(restartTimerRef.current);
+            }
+            
+            restartTimerRef.current = window.setTimeout(() => {
+              if (recognitionRef.current && isListening) {
+                recognitionRef.current.start();
+              }
+              restartTimerRef.current = null;
+            }, 300);
           } catch (e) {
             console.error("Error restarting recognition:", e);
           }
         }
       } else {
-        toast({
-          title: "Voice Assistant Error",
-          description: `Error: ${event.error}`,
-          variant: "destructive"
-        });
-        stop();
+        if (onError) {
+          onError({ message: event.error });
+        } else {
+          toast({
+            title: "Voice Assistant Error",
+            description: `Error: ${event.error}`,
+            variant: "destructive"
+          });
+        }
+        
+        // Only stop on serious errors
+        if (event.error === 'audio-capture' || event.error === 'network') {
+          stop();
+        }
       }
     };
     
     recognitionRef.current.onend = () => {
       console.log("Speech recognition ended");
+      setRecognitionActive(false);
+      
+      // If we're still supposed to be listening, restart
       if (isListening && recognitionRef.current) {
         try {
-          recognitionRef.current.start();
+          // Avoid immediate restarts
+          if (restartTimerRef.current) {
+            clearTimeout(restartTimerRef.current);
+          }
+          
+          restartTimerRef.current = window.setTimeout(() => {
+            if (recognitionRef.current && isListening) {
+              try {
+                recognitionRef.current.start();
+              } catch (e) {
+                console.error("Could not restart recognition:", e);
+                setIsListening(false);
+                if (onStopped) onStopped();
+              }
+            }
+            restartTimerRef.current = null;
+          }, 300);
         } catch (e) {
           console.error("Could not restart recognition:", e);
           setIsListening(false);
@@ -215,6 +291,7 @@ export function useVoiceAssistant({
       }
     };
     
+    // Initialize speech synthesis
     if ('speechSynthesis' in window) {
       synthRef.current = window.speechSynthesis;
       utteranceRef.current = new SpeechSynthesisUtterance();
@@ -234,10 +311,12 @@ export function useVoiceAssistant({
     }
     
     return true;
-  }, [isListening, onListening, onResult, onStopped, onWakeWord, wakeWord, isWaitingForWakeWord, speak]);
+  }, [isListening, onListening, onResult, onStopped, onWakeWord, wakeWord, isWaitingForWakeWord, speak, stop, onError]);
   
+  // Process commands from speech input
   const processCommand = useCallback((text: string, fullTranscript?: string) => {
     console.log("Processing command:", text);
+    
     // Extract login credentials from commands
     if (text.startsWith("login with")) {
       const emailMatch = text.match(/login with\s+(.+?)(?:\s+password\s+|$)/i);
@@ -287,7 +366,7 @@ export function useVoiceAssistant({
     // Process regular commands
     for (const [commandPattern, action] of Object.entries(commands)) {
       if (text === commandPattern.toLowerCase() || 
-          text.startsWith(commandPattern.toLowerCase())) {
+          text.includes(commandPattern.toLowerCase())) {
         console.log("Command match found:", commandPattern);
         if (onCommandDetected) onCommandDetected(commandPattern, fullTranscript);
         action();
@@ -298,10 +377,25 @@ export function useVoiceAssistant({
     // If no command matches, provide help
     if (text === "what can i do here" || text === "help me" || text === "help") {
       speak("You can navigate the app, login, register, or ask me for help. Try saying commands like 'go back' or 'open profile'.");
+      if (onCommandDetected) onCommandDetected("help", fullTranscript);
+      return;
     }
+    
+    // No matching command found
+    if (onCommandDetected) {
+      onCommandDetected("unknown", fullTranscript);
+    }
+    
   }, [commands, onCommandDetected, speak]);
   
+  // Start speech recognition
   const start = useCallback(async () => {
+    // Clear any existing restart timer
+    if (restartTimerRef.current) {
+      clearTimeout(restartTimerRef.current);
+      restartTimerRef.current = null;
+    }
+    
     // Check for microphone permission first
     try {
       if (permissionState !== 'granted') {
@@ -311,6 +405,7 @@ export function useVoiceAssistant({
         setPermissionState('granted');
       }
       
+      // Initialize recognition if needed
       if (!recognitionRef.current) {
         const initialized = initializeRecognition();
         if (!initialized) return;
@@ -318,33 +413,68 @@ export function useVoiceAssistant({
       
       try {
         console.log("Starting speech recognition");
-        recognitionRef.current?.start();
-        setTranscript('');
-        setInterimTranscript('');
-        setIsWaitingForWakeWord(true);
-        speak("Voice assistant is now listening. Say 'WAKE-UP' to activate.");
+        
+        // Don't try to start if already active
+        if (recognitionActive) {
+          console.log("Recognition already active, stopping first");
+          recognitionRef.current?.stop();
+          
+          // Small delay to ensure stop completes
+          setTimeout(() => {
+            if (recognitionRef.current) {
+              recognitionRef.current.start();
+              setTranscript('');
+              setInterimTranscript('');
+              setIsWaitingForWakeWord(true);
+              speak("Voice assistant is now listening. Say 'WAKE-UP' to activate.");
+            }
+          }, 300);
+        } else {
+          recognitionRef.current?.start();
+          setTranscript('');
+          setInterimTranscript('');
+          setIsWaitingForWakeWord(true);
+          speak("Voice assistant is now listening. Say 'WAKE-UP' to activate.");
+        }
       } catch (error) {
         console.error('Error starting speech recognition:', error);
-        toast({
-          title: "Error Starting Voice Assistant",
-          description: "Could not start speech recognition.",
-          variant: "destructive"
-        });
+        
+        if (onError) {
+          onError({ message: "start-error" });
+        } else {
+          toast({
+            title: "Error Starting Voice Assistant",
+            description: "Could not start speech recognition.",
+            variant: "destructive"
+          });
+        }
       }
     } catch (error) {
       console.error('Error requesting microphone permission:', error);
       setHasPermission(false);
       setPermissionState('denied');
-      toast({
-        title: "Microphone Access Denied",
-        description: "Voice assistant requires microphone permission to work",
-        variant: "destructive"
-      });
+      
+      if (onError) {
+        onError({ message: "permission-denied" });
+      } else {
+        toast({
+          title: "Microphone Access Denied",
+          description: "Voice assistant requires microphone permission to work",
+          variant: "destructive"
+        });
+      }
     }
-  }, [initializeRecognition, speak, permissionState]);
+  }, [initializeRecognition, speak, permissionState, recognitionActive, onError]);
   
+  // Stop speech recognition
   const stop = useCallback(() => {
     try {
+      // Clear any pending restart timers
+      if (restartTimerRef.current) {
+        clearTimeout(restartTimerRef.current);
+        restartTimerRef.current = null;
+      }
+      
       console.log("Stopping speech recognition");
       recognitionRef.current?.stop();
       setIsListening(false);
@@ -355,10 +485,12 @@ export function useVoiceAssistant({
     }
   }, [onStopped]);
   
+  // Reset wake word state
   const resetWakeWordState = useCallback(() => {
     setIsWaitingForWakeWord(true);
   }, []);
   
+  // Toggle speech recognition
   const toggle = useCallback(() => {
     if (isListening) {
       stop();
@@ -367,6 +499,7 @@ export function useVoiceAssistant({
     }
   }, [isListening, start, stop]);
   
+  // Clean up on unmount
   useEffect(() => {
     return () => {
       if (recognitionRef.current && isListening) {
@@ -375,9 +508,13 @@ export function useVoiceAssistant({
       if (synthRef.current && isSpeaking) {
         synthRef.current.cancel();
       }
+      if (restartTimerRef.current) {
+        clearTimeout(restartTimerRef.current);
+      }
     };
   }, [isListening, isSpeaking]);
   
+  // Auto-start if enabled
   useEffect(() => {
     if (autoStart) {
       start();
@@ -399,4 +536,3 @@ export function useVoiceAssistant({
     permissionState
   };
 }
-

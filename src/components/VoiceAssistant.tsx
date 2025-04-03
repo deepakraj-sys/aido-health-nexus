@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Mic, MicOff, Volume2, Info, Ear, AlertCircle } from 'lucide-react';
+import { Mic, MicOff, Volume2, Info, Ear, AlertCircle, ExclamationTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -31,6 +31,8 @@ export function VoiceAssistant({
   const [lastCommand, setLastCommand] = useState<string | null>(null);
   const [assistantResponse, setAssistantResponse] = useState<string | null>(null);
   const [permissionError, setPermissionError] = useState<string | null>(null);
+  const [permissionRetries, setPermissionRetries] = useState(0);
+  const [browserSupportError, setBrowserSupportError] = useState<string | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
   
@@ -50,6 +52,8 @@ export function VoiceAssistant({
     speak,
     hasPermission,
     permissionState,
+    start,
+    stop,
   } = useVoiceAssistant({
     commands: commandsMap,
     wakeWord: "WAKE-UP",
@@ -58,6 +62,7 @@ export function VoiceAssistant({
     },
     onCommandDetected: (command, fullTranscript) => {
       setLastCommand(command);
+      console.log("Command detected:", command, "Full transcript:", fullTranscript);
       
       // Handle login command
       if (command === "login with" && fullTranscript && onLoginCommand) {
@@ -94,9 +99,53 @@ export function VoiceAssistant({
         const response = responses[Math.floor(Math.random() * responses.length)];
         setAssistantResponse(response);
         speak(response);
+      } else {
+        setAssistantResponse("I heard you, but I'm not sure how to help with that. Try saying 'help' for a list of commands.");
+        speak("I heard you, but I'm not sure how to help with that. Try saying help for a list of commands.");
       }
     },
+    onError: (error) => {
+      console.error("Voice assistant error:", error);
+      
+      if (error.message === "not-allowed") {
+        setPermissionError("Microphone access was denied. Please enable it in your browser settings.");
+        toast({
+          variant: "destructive",
+          title: "Microphone Access Denied",
+          description: "Voice assistant requires microphone permission to work"
+        });
+      } else if (error.message === "no-speech") {
+        // Just log this, it's handled internally by the hook
+        console.log("No speech detected");
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Voice Assistant Error",
+          description: `Error: ${error.message || "Unknown error"}`,
+        });
+      }
+    }
   });
+  
+  // Check browser support on component mount
+  useEffect(() => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      setBrowserSupportError("Your browser doesn't support speech recognition. Try using Chrome, Edge, or Safari.");
+      toast({
+        variant: "destructive",
+        title: "Browser Not Supported",
+        description: "Your browser doesn't support the voice assistant feature.",
+      });
+    }
+
+    if (!('speechSynthesis' in window)) {
+      toast({
+        variant: "warning",
+        title: "Voice Synthesis Unavailable",
+        description: "Your browser doesn't support voice responses.",
+      });
+    }
+  }, []);
   
   // Reset permission error when permission status changes
   useEffect(() => {
@@ -108,7 +157,7 @@ export function VoiceAssistant({
   // Welcome user on first load
   useEffect(() => {
     const hasWelcomed = sessionStorage.getItem('welcomedUser');
-    if (!hasWelcomed) {
+    if (!hasWelcomed && !browserSupportError) {
       const welcomeMessage = "Welcome to AidoHealth Nexus. I'm your voice assistant. Say 'WAKE-UP' to activate, then try commands like 'Help' or 'What can I do here?'";
       setAssistantResponse(welcomeMessage);
       
@@ -118,31 +167,39 @@ export function VoiceAssistant({
         sessionStorage.setItem('welcomedUser', 'true');
       }, 1000);
     }
-  }, [speak]);
+  }, [speak, browserSupportError]);
   
   // Generate and speak personalized greeting when user logs in
   useEffect(() => {
-    if (user) {
+    if (user && !browserSupportError) {
       const userGreeting = `Hello ${user.name}. Welcome to your ${user.role} dashboard. Say 'WAKE-UP' and I'll assist you.`;
       setAssistantResponse(userGreeting);
       speak(userGreeting);
     }
-  }, [user, speak]);
+  }, [user, speak, browserSupportError]);
 
   // Handle microphone permission issues
   const requestMicrophoneAccess = async () => {
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
       setPermissionError(null);
+      setPermissionRetries(0);
       toast({
         title: "Microphone Access Granted",
         description: "You can now use the voice assistant",
       });
       // Try to start listening
-      toggle();
+      start();
     } catch (err) {
       console.error("Microphone permission error:", err);
-      setPermissionError("Microphone access was denied. Please enable microphone access in your browser settings.");
+      setPermissionRetries(prev => prev + 1);
+      
+      if (permissionRetries > 2) {
+        setPermissionError("Microphone access was denied multiple times. You may need to reset permissions in your browser settings.");
+      } else {
+        setPermissionError("Microphone access was denied. Please enable microphone access in your browser settings.");
+      }
+      
       toast({
         variant: "destructive",
         title: "Microphone Access Denied",
@@ -156,6 +213,15 @@ export function VoiceAssistant({
       setIsExpanded(true);
     }
     
+    if (browserSupportError) {
+      toast({
+        variant: "destructive",
+        title: "Browser Not Supported",
+        description: browserSupportError,
+      });
+      return;
+    }
+    
     if (!hasPermission && permissionState === 'denied') {
       setPermissionError("Microphone access was denied. Please enable it in your browser settings and reload the page.");
       return;
@@ -167,13 +233,29 @@ export function VoiceAssistant({
     toggle();
   };
   
+  const showHelpInfo = () => {
+    const helpMessage = "Say 'WAKE-UP' to activate me, then try these commands: Help, Login, Register, Tell me about AidoHealth, What can you do here?, Go back, or Open profile.";
+    setAssistantResponse(helpMessage);
+    speak(helpMessage);
+  };
+  
   return (
     <div className={`fixed bottom-4 right-4 z-50 transition-all duration-300 ease-in-out ${isExpanded ? 'w-80' : 'w-auto'}`}>
       {isExpanded && (
         <Card className="mb-2 shadow-lg border-primary/20 animate-fade-in">
           <CardContent className="p-4">
             <div className="space-y-2">
-              {permissionError && (
+              {browserSupportError && (
+                <Alert variant="destructive" className="mb-2">
+                  <ExclamationTriangle className="h-4 w-4" />
+                  <AlertTitle>Browser Not Supported</AlertTitle>
+                  <AlertDescription className="text-xs">
+                    {browserSupportError}
+                  </AlertDescription>
+                </Alert>
+              )}
+              
+              {permissionError && !browserSupportError && (
                 <Alert variant="destructive" className="mb-2">
                   <AlertCircle className="h-4 w-4" />
                   <AlertTitle>Microphone Access Needed</AlertTitle>
@@ -240,11 +322,7 @@ export function VoiceAssistant({
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          const helpMessage = "Say 'WAKE-UP' to activate me, then try these commands: Help, Login, Register, Tell me about AidoHealth, What can you do here?, Go back, or Open profile.";
-                          setAssistantResponse(helpMessage);
-                          speak(helpMessage);
-                        }}
+                        onClick={showHelpInfo}
                       >
                         <Info size={14} />
                         <span className="ml-1">Help</span>
@@ -279,7 +357,7 @@ export function VoiceAssistant({
                   ? isWaitingForWakeWord 
                     ? 'bg-amber-500 animate-pulse-slow' 
                     : 'bg-primary animate-pulse-soft'
-                  : permissionError 
+                  : permissionError || browserSupportError
                     ? 'bg-destructive hover:bg-destructive/90' 
                     : 'bg-primary/80 hover:bg-primary'
               }`}
@@ -296,4 +374,3 @@ export function VoiceAssistant({
     </div>
   );
 }
-
