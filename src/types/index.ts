@@ -12,6 +12,8 @@ export interface User {
   email: string;
   role: UserRole;
   phone?: string;
+  username?: string; // Added username property
+  avatar?: string;
 }
 
 export interface AIFeature {
@@ -49,15 +51,7 @@ export interface GenomeData {
   };
 }
 
-// Add TypeScript declarations for the Web Speech API
-declare global {
-  interface Window {
-    SpeechRecognition: typeof SpeechRecognition;
-    webkitSpeechRecognition: typeof SpeechRecognition;
-  }
-}
-
-// Web Speech API interfaces
+// Web Speech API interfaces - properly defined
 interface SpeechRecognitionErrorEvent extends Event {
   error: string;
   message: string;
@@ -79,4 +73,12 @@ interface SpeechRecognition extends EventTarget {
   start: () => void;
   stop: () => void;
   abort: () => void;
+}
+
+// Fix the global declaration to avoid type/value confusion
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognition;
+    webkitSpeechRecognition: new () => SpeechRecognition;
+  }
 }

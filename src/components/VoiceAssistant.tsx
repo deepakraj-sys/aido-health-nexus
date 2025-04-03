@@ -131,9 +131,9 @@ export function VoiceAssistant({
       });
     }
 
-    if (!('speechSynthesis' in window)) {
+    if ('speechSynthesis' in window)) {
       toast({
-        variant: "warning",
+        variant: "destructive",
         title: "Voice Synthesis Unavailable",
         description: "Your browser doesn't support voice responses.",
       });
