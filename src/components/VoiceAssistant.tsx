@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Mic, MicOff, Volume2, Info, Ear } from 'lucide-react';
+import { Mic, MicOff, Volume2, Info, Ear, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -14,6 +14,7 @@ import { VoiceCommand } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface VoiceAssistantProps {
   commands?: VoiceCommand[];
@@ -29,6 +30,7 @@ export function VoiceAssistant({
   const [isExpanded, setIsExpanded] = useState(false);
   const [lastCommand, setLastCommand] = useState<string | null>(null);
   const [assistantResponse, setAssistantResponse] = useState<string | null>(null);
+  const [permissionError, setPermissionError] = useState<string | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
   
@@ -46,6 +48,8 @@ export function VoiceAssistant({
     interimTranscript,
     toggle,
     speak,
+    hasPermission,
+    permissionState,
   } = useVoiceAssistant({
     commands: commandsMap,
     wakeWord: "WAKE-UP",
@@ -94,6 +98,13 @@ export function VoiceAssistant({
     },
   });
   
+  // Reset permission error when permission status changes
+  useEffect(() => {
+    if (hasPermission) {
+      setPermissionError(null);
+    }
+  }, [hasPermission]);
+  
   // Welcome user on first load
   useEffect(() => {
     const hasWelcomed = sessionStorage.getItem('welcomedUser');
@@ -117,6 +128,44 @@ export function VoiceAssistant({
       speak(userGreeting);
     }
   }, [user, speak]);
+
+  // Handle microphone permission issues
+  const requestMicrophoneAccess = async () => {
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      setPermissionError(null);
+      toast({
+        title: "Microphone Access Granted",
+        description: "You can now use the voice assistant",
+      });
+      // Try to start listening
+      toggle();
+    } catch (err) {
+      console.error("Microphone permission error:", err);
+      setPermissionError("Microphone access was denied. Please enable microphone access in your browser settings.");
+      toast({
+        variant: "destructive",
+        title: "Microphone Access Denied",
+        description: "Voice assistant requires microphone permission to work",
+      });
+    }
+  };
+  
+  const handleAssistantToggle = () => {
+    if (!isExpanded) {
+      setIsExpanded(true);
+    }
+    
+    if (!hasPermission && permissionState === 'denied') {
+      setPermissionError("Microphone access was denied. Please enable it in your browser settings and reload the page.");
+      return;
+    } else if (!hasPermission) {
+      requestMicrophoneAccess();
+      return;
+    }
+    
+    toggle();
+  };
   
   return (
     <div className={`fixed bottom-4 right-4 z-50 transition-all duration-300 ease-in-out ${isExpanded ? 'w-80' : 'w-auto'}`}>
@@ -124,6 +173,24 @@ export function VoiceAssistant({
         <Card className="mb-2 shadow-lg border-primary/20 animate-fade-in">
           <CardContent className="p-4">
             <div className="space-y-2">
+              {permissionError && (
+                <Alert variant="destructive" className="mb-2">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Microphone Access Needed</AlertTitle>
+                  <AlertDescription className="text-xs">
+                    {permissionError}
+                  </AlertDescription>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="mt-2" 
+                    onClick={requestMicrophoneAccess}
+                  >
+                    Request Access
+                  </Button>
+                </Alert>
+              )}
+              
               <div className="text-sm font-medium">
                 {assistantResponse && (
                   <div className="mb-2 p-2 bg-primary/10 rounded-lg">
@@ -212,14 +279,11 @@ export function VoiceAssistant({
                   ? isWaitingForWakeWord 
                     ? 'bg-amber-500 animate-pulse-slow' 
                     : 'bg-primary animate-pulse-soft'
-                  : 'bg-primary/80 hover:bg-primary'
+                  : permissionError 
+                    ? 'bg-destructive hover:bg-destructive/90' 
+                    : 'bg-primary/80 hover:bg-primary'
               }`}
-              onClick={() => {
-                if (!isExpanded) {
-                  setIsExpanded(true);
-                }
-                toggle();
-              }}
+              onClick={handleAssistantToggle}
             >
               {isListening ? <Mic className="h-6 w-6" /> : <MicOff className="h-6 w-6" />}
             </Button>
@@ -232,3 +296,4 @@ export function VoiceAssistant({
     </div>
   );
 }
+
