@@ -78,7 +78,7 @@ interface SpeechRecognition extends EventTarget {
 // Fix the global declaration to avoid type/value confusion
 declare global {
   interface Window {
-    SpeechRecognition: new () => SpeechRecognition;
-    webkitSpeechRecognition: new () => SpeechRecognition;
+    SpeechRecognition: {new(): SpeechRecognition};
+    webkitSpeechRecognition: {new(): SpeechRecognition};
   }
 }

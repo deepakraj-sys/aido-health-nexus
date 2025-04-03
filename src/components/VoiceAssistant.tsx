@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Mic, MicOff, Volume2, Info, Ear, AlertCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -131,7 +132,7 @@ export function VoiceAssistant({
       });
     }
 
-    if ('speechSynthesis' in window)) {
+    if (!('speechSynthesis' in window)) {
       toast({
         variant: "destructive",
         title: "Voice Synthesis Unavailable",
